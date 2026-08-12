@@ -67,7 +67,7 @@ async function vueTribu(vue, id) {
       <div>
         <h1>Tribu ${esc(s.tribu.nom)}</h1>
         <p class="sous-titre">${s.tribu.patriarche_prenom
-          ? 'Patriarche : <strong>' + esc(s.tribu.patriarche_prenom) + ' ' + esc(s.tribu.patriarche_nom) + '</strong>'
+          ? `<span style="display:inline-flex;align-items:center;gap:6px">${avatarHtml(s.tribu.patriarche_photo, s.tribu.patriarche_prenom, s.tribu.patriarche_nom, 28)} Patriarche : <strong>${esc(s.tribu.patriarche_prenom)} ${esc(s.tribu.patriarche_nom)}</strong></span>`
           : '<em>Patriarche à désigner</em>'} · ${nombre(s.nb_membres)} fidèle(s)</p>
       </div>
       <button id="btn-nouvelle-fiche">📋 Nouvelle fiche de présence</button>
@@ -157,7 +157,7 @@ async function vueDepartement(vue, id) {
       <div>
         <h1>${esc(s.departement.nom)}</h1>
         <p class="sous-titre">${s.departement.responsable_prenom
-          ? 'Responsable : <strong>' + esc(s.departement.responsable_prenom) + ' ' + esc(s.departement.responsable_nom) + '</strong>'
+          ? `<span style="display:inline-flex;align-items:center;gap:6px">${avatarHtml(s.departement.responsable_photo, s.departement.responsable_prenom, s.departement.responsable_nom, 28)} Responsable : <strong>${esc(s.departement.responsable_prenom)} ${esc(s.departement.responsable_nom)}</strong></span>`
           : '<em>Responsable à désigner</em>'} · ${nombre(s.nb_membres)} membre(s)</p>
       </div>
       <button id="btn-nouvelle-fiche">📋 Nouvelle fiche de présence</button>

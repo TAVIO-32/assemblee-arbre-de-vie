@@ -8,7 +8,7 @@ const db = require('../db');
 /** Colonnes exposables d'un compte (jamais le mot de passe). */
 const CHAMPS_PUBLICS = `u.id, u.nom, u.prenom, u.email, u.telephone, u.whatsapp,
   u.date_naissance, u.role, u.statut, u.tribu_id, u.tribu_souhaitee,
-  u.departement_souhaite, u.created_at, t.nom AS tribu_nom`;
+  u.departement_souhaite, u.photo, u.created_at, t.nom AS tribu_nom`;
 
 const JOINTURE_TRIBU = 'LEFT JOIN tribus t ON t.id = u.tribu_id';
 

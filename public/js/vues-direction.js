@@ -85,8 +85,11 @@ function tableauEquipes(lignes, chemin, libelleMeneur, prefixe) {
       <th style="min-width:104px">Taux de présence</th>
     </tr></thead>
     <tbody>${lignes.map((l) => {
-      const meneur = l[prefixe + '_prenom']
-        ? `${esc(l[prefixe + '_prenom'])} ${esc(l[prefixe + '_nom'])}`
+      const photo = l[prefixe + '_photo'];
+      const prenom = l[prefixe + '_prenom'];
+      const nom = l[prefixe + '_nom'];
+      const meneur = prenom
+        ? `<span style="display:inline-flex;align-items:center;gap:6px">${avatarHtml(photo, prenom, nom, 28)} ${esc(prenom)} ${esc(nom)}</span>`
         : '<em style="color:var(--ambre)">à désigner</em>';
       return `<tr>
         <td><a href="#/${chemin}/${l.id}"><strong>${esc(l.nom)}</strong></a></td>
@@ -305,11 +308,21 @@ async function vueFicheFidele(vue, id) {
   vue.innerHTML = `
     <a href="#/fideles" class="btn btn-petit btn-neutre retour">← Retour aux fidèles</a>
     <div class="entete-page">
-      <div>
-        <h1>${esc(m.prenom)} ${esc(m.nom)}</h1>
-        <p class="sous-titre">${badgeRole(m.role)}
-          ${m.tribu_nom ? ' · Tribu <strong>' + esc(m.tribu_nom) + '</strong>' : ' · sans tribu'}</p>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="photo-profil-conteneur-compact" id="zone-photo-fiche">
+          ${m.photo
+            ? `<img src="${urlPhoto(m.photo)}" alt="Photo" class="photo-profil" style="width:64px;height:64px">`
+            : avatarHtml(null, m.prenom, m.nom, 64)}
+        </div>
+        <div>
+          <h1 style="margin:0">${esc(m.prenom)} ${esc(m.nom)}</h1>
+          <p class="sous-titre" style="margin:0">${badgeRole(m.role)}
+            ${m.tribu_nom ? ' · Tribu <strong>' + esc(m.tribu_nom) + '</strong>' : ' · sans tribu'}</p>
+        </div>
       </div>
+      ${direction ? `<label class="btn btn-petit btn-secondaire" style="cursor:pointer">
+        Photo <input type="file" id="input-photo-fidele" accept="image/*" hidden>
+      </label>` : ''}
     </div>
 
     <div class="grille-stats">
@@ -376,6 +389,19 @@ async function vueFicheFidele(vue, id) {
     try { await api.del('/users/' + id); toast('Compte supprimé.'); location.hash = '#/fideles'; }
     catch (err) { toast(err.message, true); }
   };
+
+  const inputPhotoFidele = document.getElementById('input-photo-fidele');
+  if (inputPhotoFidele) inputPhotoFidele.onchange = async (e) => {
+    const fichier = e.target.files[0];
+    if (!fichier) return;
+    const fd = new FormData();
+    fd.append('photo', fichier);
+    try {
+      await api.upload(`/uploads/photo/${id}`, fd);
+      toast('Photo mise à jour.');
+      vueFicheFidele(vue, id);
+    } catch (err) { toast(err.message, true); }
+  };
 }
 
 /* ============ Administration des tribus ============ */
@@ -393,7 +419,7 @@ async function vueTribus(vue) {
       ${tribus.map((t) => `<a class="carte-equipe ${t.patriarche_id ? '' : 'sans-responsable'}" href="#/tribus/${t.id}">
         <div class="titre">${esc(t.nom)}</div>
         <div class="meneur">${t.patriarche_id
-          ? 'Patriarche : ' + esc(t.patriarche_prenom) + ' ' + esc(t.patriarche_nom)
+          ? `<span style="display:inline-flex;align-items:center;gap:6px">${avatarHtml(t.patriarche_photo, t.patriarche_prenom, t.patriarche_nom, 24)} ${esc(t.patriarche_prenom)} ${esc(t.patriarche_nom)}</span>`
           : '<em>Patriarche à désigner</em>'}</div>
         <div class="chiffres"><div><strong>${nombre(t.nb_membres)}</strong> fidèle(s)</div></div>
       </a>`).join('') || '<p class="message-vide">Aucune tribu.</p>'}
@@ -591,7 +617,7 @@ async function vueDepartements(vue) {
       ${departements.map((d) => `<a class="carte-equipe ${d.responsable_id ? '' : 'sans-responsable'}" href="#/departements/${d.id}">
         <div class="titre">${esc(d.nom)}</div>
         <div class="meneur">${d.responsable_id
-          ? 'Responsable : ' + esc(d.responsable_prenom) + ' ' + esc(d.responsable_nom)
+          ? `<span style="display:inline-flex;align-items:center;gap:6px">${avatarHtml(d.responsable_photo, d.responsable_prenom, d.responsable_nom, 24)} ${esc(d.responsable_prenom)} ${esc(d.responsable_nom)}</span>`
           : '<em>Responsable à désigner</em>'}</div>
         <div class="chiffres"><div><strong>${nombre(d.nb_membres)}</strong> membre(s)</div></div>
       </a>`).join('') || '<p class="message-vide">Aucun département.</p>'}

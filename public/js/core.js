@@ -18,6 +18,7 @@ const etat = {
   ref: null,           // référentiel métier (/api/referentiel)
   tribus: [],          // cache des tribus
   departements: [],    // cache des départements
+  logoUrl: null,       // URL du logo personnalisé (null = emoji par défaut)
 };
 
 /** Échappe le HTML pour éviter toute injection dans les gabarits. */
@@ -102,6 +103,18 @@ function estEncadrant(user = etat.user) {
 }
 
 /** Options <select> génériques à partir d'une liste { id, nom }. */
+function urlPhoto(nomFichier) {
+  return nomFichier ? `/api/uploads/${nomFichier}` : null;
+}
+
+function avatarHtml(photo, prenom, nom, taille = 40) {
+  if (photo) {
+    return `<img class="avatar" src="${urlPhoto(photo)}" alt="${esc(prenom)}" style="width:${taille}px;height:${taille}px">`;
+  }
+  const initiales = (String(prenom)[0] || '') + (String(nom)[0] || '');
+  return `<span class="avatar avatar-initiales" style="width:${taille}px;height:${taille}px;font-size:${Math.round(taille * 0.4)}px">${esc(initiales.toUpperCase())}</span>`;
+}
+
 function options(liste, selectionne, vide = '') {
   return (vide ? `<option value="">${esc(vide)}</option>` : '') +
     liste.map((o) => `<option value="${o.id}" ${Number(selectionne) === o.id ? 'selected' : ''}>${esc(o.nom)}</option>`).join('');
@@ -282,9 +295,13 @@ function coquille(ancreActive) {
   const rattachement = [u.tribu_nom, ...(u.departements || []).map((d) => d.nom)]
     .filter(Boolean).join(' · ');
 
+  const logoHtml = etat.logoUrl
+    ? `<img src="${etat.logoUrl}" alt="Logo" class="logo-img">`
+    : '🌳';
+
   appEl.innerHTML = `
     <header class="entete">
-      <div class="logo">🌳 <span>Arbre de Vie<small>Assemblée — suivi des fidèles</small></span></div>
+      <div class="logo">${logoHtml} <span>Arbre de Vie<small>Assemblée — suivi des fidèles</small></span></div>
       <div class="compte">
         <div><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div>
         <div class="role">${esc(libelleRole(u.role))}${rattachement ? ' · ' + esc(rattachement) : ''}</div>
@@ -425,5 +442,9 @@ async function soumettreInscription(e) {
 async function rafraichirSession() {
   const [me] = await Promise.all([api.get('/auth/me'), chargerReferentiel()]);
   etat.user = me.user;
+  try {
+    const r = await fetch('/api/uploads/logo/current', { credentials: 'same-origin' });
+    etat.logoUrl = r.ok ? '/api/uploads/logo/current' : null;
+  } catch { etat.logoUrl = null; }
   return etat.user;
 }

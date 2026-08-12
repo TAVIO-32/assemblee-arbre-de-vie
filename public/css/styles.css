@@ -511,6 +511,33 @@ td.numerique, th.numerique { text-align: right; }
 .comptage-notes { margin-top: 4px; }
 .comptage-notes textarea { min-height: 60px; }
 
+/* ---------- Photos et avatars ---------- */
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  vertical-align: middle;
+}
+img.avatar { border: 2px solid var(--primaire-bord); }
+.avatar-initiales {
+  background: var(--primaire-pale); color: var(--primaire);
+  font-weight: 800; letter-spacing: .5px;
+  border: 2px solid var(--primaire-bord);
+}
+.photo-profil {
+  width: 80px; height: 80px; border-radius: 50%;
+  object-fit: cover; border: 3px solid var(--primaire-bord);
+}
+.photo-profil-conteneur {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.photo-actions { display: flex; flex-direction: column; gap: 6px; }
+.zone-photo-profil { margin-bottom: 14px; }
+
+.logo-img {
+  width: 36px; height: 36px; border-radius: 6px;
+  object-fit: contain; flex-shrink: 0;
+}
+
 /* ---------- Divers ---------- */
 .retour { display: inline-block; margin-bottom: 12px; }
 .filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 14px; }

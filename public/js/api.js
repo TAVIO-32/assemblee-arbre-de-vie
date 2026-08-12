@@ -25,4 +25,19 @@ const api = {
   post(chemin, corps) { return this.requete('POST', chemin, corps); },
   put(chemin, corps) { return this.requete('PUT', chemin, corps); },
   del(chemin) { return this.requete('DELETE', chemin); },
+  async upload(chemin, formData) {
+    const reponse = await fetch('/api' + chemin, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: formData,
+    });
+    let donnees = {};
+    try { donnees = await reponse.json(); } catch { /* réponse vide */ }
+    if (!reponse.ok) {
+      const err = new Error(donnees.error || 'Une erreur est survenue.');
+      err.status = reponse.status;
+      throw err;
+    }
+    return donnees;
+  },
 };

@@ -18,6 +18,7 @@ const SELECT_DEPT = `
   SELECT d.id, d.nom, d.description, d.responsable_id,
     r.prenom AS responsable_prenom, r.nom AS responsable_nom,
     r.telephone AS responsable_telephone, r.whatsapp AS responsable_whatsapp,
+    r.photo AS responsable_photo,
     (SELECT COUNT(*) FROM membres_departements m
        JOIN users u ON u.id = m.membre_id
       WHERE m.departement_id = d.id AND u.statut = 'actif') AS nb_membres

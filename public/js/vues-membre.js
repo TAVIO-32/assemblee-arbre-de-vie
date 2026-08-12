@@ -136,6 +136,23 @@ async function vueProfil(vue) {
     <h1>Mon profil</h1>
     <p class="sous-titre">${esc(libelleRole(u.role))}${u.tribu_nom ? ' · Tribu ' + esc(u.tribu_nom) : ''}
       ${u.departements.length ? ' · ' + u.departements.map((d) => esc(d.nom)).join(', ') : ''}</p>
+
+    <div class="carte zone-photo-profil">
+      <h3>Ma photo</h3>
+      <div class="photo-profil-conteneur">
+        <div id="apercu-photo">${u.photo
+          ? `<img src="${urlPhoto(u.photo)}" alt="Photo" class="photo-profil">`
+          : avatarHtml(null, u.prenom, u.nom, 80)}</div>
+        <div class="photo-actions">
+          <label class="btn btn-petit btn-secondaire">
+            Choisir une photo
+            <input type="file" id="input-photo" accept="image/*" hidden>
+          </label>
+          ${u.photo ? '<button class="btn-petit btn-danger" id="btn-suppr-photo">Supprimer</button>' : ''}
+        </div>
+      </div>
+    </div>
+
     <div class="carte">
       <form id="form-profil">
         <div class="ligne-champs">
@@ -154,7 +171,24 @@ async function vueProfil(vue) {
         <input type="password" name="password" minlength="6" autocomplete="new-password">
         <button class="btn-bloc" type="submit">Enregistrer mon profil</button>
       </form>
-    </div>`;
+    </div>
+
+    ${estDirection() ? `<div class="carte">
+      <h3>Logo de l'assemblée</h3>
+      <p class="aide" style="margin:0 0 10px">Le logo apparaît dans l'entête de l'application. JPG, PNG ou WebP, 2 Mo max.</p>
+      <div class="photo-profil-conteneur">
+        <div id="apercu-logo">${etat.logoUrl
+          ? `<img src="${etat.logoUrl}" alt="Logo" class="photo-profil" style="border-radius:8px">`
+          : '<span class="avatar avatar-initiales" style="width:80px;height:80px;font-size:32px;border-radius:8px">🌳</span>'}</div>
+        <div class="photo-actions">
+          <label class="btn btn-petit btn-secondaire">
+            Choisir un logo
+            <input type="file" id="input-logo" accept="image/*" hidden>
+          </label>
+          ${etat.logoUrl ? '<button class="btn-petit btn-danger" id="btn-suppr-logo">Supprimer le logo</button>' : ''}
+        </div>
+      </div>
+    </div>` : ''}`;
 
   document.getElementById('form-profil').onsubmit = async (e) => {
     e.preventDefault();
@@ -162,9 +196,56 @@ async function vueProfil(vue) {
     if (!donnees.password) delete donnees.password;
     try {
       await api.put('/users/me', donnees);
-      await rafraichirSession();   // recharge l'entête avec le nouveau nom
+      await rafraichirSession();
       toast('Profil mis à jour.');
       router();
+    } catch (err) { toast(err.message, true); }
+  };
+
+  document.getElementById('input-photo').onchange = async (e) => {
+    const fichier = e.target.files[0];
+    if (!fichier) return;
+    const fd = new FormData();
+    fd.append('photo', fichier);
+    try {
+      await api.upload('/uploads/photo', fd);
+      await rafraichirSession();
+      toast('Photo mise à jour.');
+      vueProfil(vue);
+    } catch (err) { toast(err.message, true); }
+  };
+
+  const btnSupprPhoto = document.getElementById('btn-suppr-photo');
+  if (btnSupprPhoto) btnSupprPhoto.onclick = async () => {
+    try {
+      await api.del('/uploads/photo');
+      await rafraichirSession();
+      toast('Photo supprimée.');
+      vueProfil(vue);
+    } catch (err) { toast(err.message, true); }
+  };
+
+  const inputLogo = document.getElementById('input-logo');
+  if (inputLogo) inputLogo.onchange = async (e) => {
+    const fichier = e.target.files[0];
+    if (!fichier) return;
+    const fd = new FormData();
+    fd.append('logo', fichier);
+    try {
+      await api.upload('/uploads/logo', fd);
+      await rafraichirSession();
+      toast('Logo mis à jour.');
+      vueProfil(vue);
+    } catch (err) { toast(err.message, true); }
+  };
+
+  const btnSupprLogo = document.getElementById('btn-suppr-logo');
+  if (btnSupprLogo) btnSupprLogo.onclick = async () => {
+    try {
+      await api.del('/uploads/logo');
+      await rafraichirSession();
+      toast('Logo supprimé.');
+      vueProfil(vue);
     } catch (err) { toast(err.message, true); }
   };
 }

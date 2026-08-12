@@ -156,7 +156,7 @@ router.get('/global', requireDirection, async (req, res) => {
   // Tribus : effectif, patriarche et taux de présence.
   const tribus = await db.all(`
     SELECT t.id, t.nom, t.patriarche_id,
-      p.prenom AS patriarche_prenom, p.nom AS patriarche_nom,
+      p.prenom AS patriarche_prenom, p.nom AS patriarche_nom, p.photo AS patriarche_photo,
       (SELECT COUNT(*) FROM users u WHERE u.tribu_id = t.id AND u.statut = 'actif') AS nb_membres
     FROM tribus t LEFT JOIN users p ON p.id = t.patriarche_id
     ORDER BY t.nom`);
@@ -169,7 +169,7 @@ router.get('/global', requireDirection, async (req, res) => {
   // Départements : effectif, responsable et taux de présence.
   const departements = await db.all(`
     SELECT d.id, d.nom, d.responsable_id,
-      r.prenom AS responsable_prenom, r.nom AS responsable_nom,
+      r.prenom AS responsable_prenom, r.nom AS responsable_nom, r.photo AS responsable_photo,
       (SELECT COUNT(*) FROM membres_departements m JOIN users u ON u.id = m.membre_id
         WHERE m.departement_id = d.id AND u.statut = 'actif') AS nb_membres
     FROM departements d LEFT JOIN users r ON r.id = d.responsable_id
@@ -222,7 +222,7 @@ router.get('/tribu/:id', async (req, res) => {
     return res.status(403).json({ error: 'Cette tribu ne relève pas de votre périmètre.' });
   }
   const tribu = await db.get(`
-    SELECT t.*, p.prenom AS patriarche_prenom, p.nom AS patriarche_nom
+    SELECT t.*, p.prenom AS patriarche_prenom, p.nom AS patriarche_nom, p.photo AS patriarche_photo
     FROM tribus t LEFT JOIN users p ON p.id = t.patriarche_id WHERE t.id = ?`, id);
   if (!tribu) return res.status(404).json({ error: 'Tribu introuvable.' });
 
@@ -270,7 +270,7 @@ router.get('/departement/:id', async (req, res) => {
     return res.status(403).json({ error: 'Ce département ne relève pas de votre périmètre.' });
   }
   const departement = await db.get(`
-    SELECT d.*, r.prenom AS responsable_prenom, r.nom AS responsable_nom
+    SELECT d.*, r.prenom AS responsable_prenom, r.nom AS responsable_nom, r.photo AS responsable_photo
     FROM departements d LEFT JOIN users r ON r.id = d.responsable_id WHERE d.id = ?`, id);
   if (!departement) return res.status(404).json({ error: 'Département introuvable.' });
 

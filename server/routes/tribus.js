@@ -23,6 +23,7 @@ const SELECT_TRIBU = `
   SELECT t.id, t.nom, t.description, t.patriarche_id,
     p.prenom AS patriarche_prenom, p.nom AS patriarche_nom,
     p.telephone AS patriarche_telephone, p.whatsapp AS patriarche_whatsapp,
+    p.photo AS patriarche_photo,
     (SELECT COUNT(*) FROM users u WHERE u.tribu_id = t.id AND u.statut = 'actif') AS nb_membres
   FROM tribus t
   LEFT JOIN users p ON p.id = t.patriarche_id`;

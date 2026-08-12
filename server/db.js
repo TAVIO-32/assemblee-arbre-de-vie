@@ -150,6 +150,10 @@ function tables(idAuto, horodatage) {
       saisi_par          INTEGER REFERENCES users(id) ON DELETE SET NULL,
       created_at         ${horodatage}
     )`,
+    parametres: `CREATE TABLE IF NOT EXISTS parametres (
+      cle    TEXT PRIMARY KEY,
+      valeur TEXT
+    )`,
   };
 }
 
@@ -157,7 +161,7 @@ function tables(idAuto, horodatage) {
 const ORDRE_TABLES = [
   'tribus', 'departements', 'users', 'membres_departements',
   'evenements', 'presences', 'cotisations', 'demandes', 'annonces', 'comptages',
-  'bilans_mensuels',
+  'bilans_mensuels', 'parametres',
 ];
 
 const INDEX = [
@@ -326,6 +330,7 @@ db.migrer = async function migrer() {
   await db.ajouterColonne('presences', 'commentaire', "TEXT DEFAULT ''");
   await db.ajouterColonne('presences', 'pointe_par', 'INTEGER');
   await db.ajouterColonne('annonces', 'tribu_id', 'INTEGER');
+  await db.ajouterColonne('users', 'photo', 'TEXT');
 
   // 2. Reprise des affectations « un seul département » vers la table de liaison.
   if (await db.colonneExiste('users', 'departement_id')) {

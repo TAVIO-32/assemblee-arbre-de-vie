@@ -35,6 +35,7 @@ app.use('/api/cotisations', require('./routes/cotisations'));
 app.use('/api/demandes', require('./routes/demandes'));
 app.use('/api/annonces', require('./routes/annonces'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/uploads', require('./routes/uploads'));
 
 // Interface web (SPA) : fichiers statiques + repli sur index.html.
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
