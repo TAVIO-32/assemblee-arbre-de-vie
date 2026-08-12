@@ -305,6 +305,108 @@ router.get('/departement/:id', async (req, res) => {
   });
 });
 
+/* ---------------- Bilans mensuels ---------------- */
+
+/**
+ * POST /api/stats/bilan — sauvegarde le bilan du mois (corps pastoral).
+ * Corps : { mois: 'AAAA-MM' } (défaut : mois courant)
+ * Calcule un snapshot complet et le stocke pour l'historique d'évolution.
+ */
+router.post('/bilan', requireDirection, async (req, res) => {
+  const maintenant = new Date();
+  const mois = String(req.body?.mois || '').slice(0, 7) ||
+    `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}`;
+  if (!/^\d{4}-\d{2}$/.test(mois)) {
+    return res.status(400).json({ error: 'Format attendu : AAAA-MM.' });
+  }
+
+  const dateDebut = mois + '-01';
+  const moisSuivant = Number(mois.split('-')[1]) === 12
+    ? `${Number(mois.split('-')[0]) + 1}-01`
+    : `${mois.split('-')[0]}-${String(Number(mois.split('-')[1]) + 1).padStart(2, '0')}`;
+  const dateFin = moisSuivant + '-01';
+
+  const effectifs = await db.get(
+    "SELECT COUNT(*) AS n FROM users WHERE statut = 'actif'");
+
+  const nouveaux = await db.get(
+    "SELECT COUNT(*) AS n FROM users WHERE statut = 'actif' AND created_at >= ? AND created_at < ?",
+    dateDebut, dateFin);
+
+  const evenements = await db.get(
+    'SELECT COUNT(*) AS n FROM evenements WHERE date >= ? AND date < ?',
+    dateDebut, dateFin);
+
+  const cultes = await db.get(
+    "SELECT COUNT(*) AS n FROM evenements WHERE type = 'culte' AND date >= ? AND date < ?",
+    dateDebut, dateFin);
+
+  const presence = await tauxPresence(
+    'WHERE e.date >= ? AND e.date < ?', [dateDebut, dateFin]);
+
+  const comptages = await db.get(`
+    SELECT COALESCE(SUM(c.hommes), 0) AS h, COALESCE(SUM(c.femmes), 0) AS f,
+           COALESCE(SUM(c.enfants), 0) AS e
+    FROM comptages c JOIN evenements ev ON ev.id = c.evenement_id
+    WHERE ev.date >= ? AND ev.date < ?
+  `, dateDebut, dateFin);
+
+  const tribus = await db.all(`
+    SELECT t.id, t.nom,
+      (SELECT COUNT(*) FROM users u WHERE u.tribu_id = t.id AND u.statut = 'actif') AS nb_membres
+    FROM tribus t ORDER BY t.nom`);
+  const parTribu = [];
+  for (const t of tribus) {
+    const s = await tauxPresence('WHERE u.tribu_id = ? AND e.date >= ? AND e.date < ?',
+      [t.id, dateDebut, dateFin]);
+    parTribu.push({ id: t.id, nom: t.nom, nb_membres: t.nb_membres, taux: s.taux });
+  }
+
+  const depts = await db.all(`
+    SELECT d.id, d.nom,
+      (SELECT COUNT(*) FROM membres_departements m JOIN users u ON u.id = m.membre_id
+        WHERE m.departement_id = d.id AND u.statut = 'actif') AS nb_membres
+    FROM departements d ORDER BY d.nom`);
+  const parDept = [];
+  for (const d of depts) {
+    const s = await tauxPresence(
+      'WHERE u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?) AND e.date >= ? AND e.date < ?',
+      [d.id, dateDebut, dateFin]);
+    parDept.push({ id: d.id, nom: d.nom, nb_membres: d.nb_membres, taux: s.taux });
+  }
+
+  await db.run(`
+    INSERT INTO bilans_mensuels (mois, fideles_actifs, nouveaux_inscrits, nb_evenements,
+      nb_cultes, nb_pointages, taux_presence, comptage_hommes, comptage_femmes,
+      comptage_enfants, par_tribu, par_departement, saisi_par)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (mois)
+    DO UPDATE SET fideles_actifs = EXCLUDED.fideles_actifs,
+      nouveaux_inscrits = EXCLUDED.nouveaux_inscrits,
+      nb_evenements = EXCLUDED.nb_evenements, nb_cultes = EXCLUDED.nb_cultes,
+      nb_pointages = EXCLUDED.nb_pointages, taux_presence = EXCLUDED.taux_presence,
+      comptage_hommes = EXCLUDED.comptage_hommes, comptage_femmes = EXCLUDED.comptage_femmes,
+      comptage_enfants = EXCLUDED.comptage_enfants,
+      par_tribu = EXCLUDED.par_tribu, par_departement = EXCLUDED.par_departement,
+      saisi_par = EXCLUDED.saisi_par
+  `, mois, effectifs.n, nouveaux.n || 0, evenements.n, cultes.n,
+     presence.total, presence.taux, comptages.h, comptages.f, comptages.e,
+     JSON.stringify(parTribu), JSON.stringify(parDept), req.user.id);
+
+  res.json({ ok: true, mois });
+});
+
+/** GET /api/stats/bilans — historique des bilans mensuels (corps pastoral). */
+router.get('/bilans', requireDirection, async (req, res) => {
+  const bilans = await db.all(
+    'SELECT * FROM bilans_mensuels ORDER BY mois DESC LIMIT 24');
+  for (const b of bilans) {
+    try { b.par_tribu = JSON.parse(b.par_tribu); } catch { b.par_tribu = []; }
+    try { b.par_departement = JSON.parse(b.par_departement); } catch { b.par_departement = []; }
+  }
+  res.json({ bilans });
+});
+
 /* ---------------- Indicateurs personnels ---------------- */
 
 /** GET /api/stats/me — indicateurs du fidèle connecté. */

@@ -170,6 +170,43 @@ router.post('/', requireEncadrement, async (req, res) => {
   res.status(201).json({ id });
 });
 
+/**
+ * POST /api/evenements/generer-cultes — génère les cultes du mois.
+ * Corps : { mois: 'AAAA-MM' }
+ * Crée un culte pour chaque dimanche et chaque mercredi du mois donné,
+ * sauf si un culte existe déjà à cette date.
+ */
+router.post('/generer-cultes', requireEncadrement, async (req, res) => {
+  if (!req.perimetre.tout) {
+    return res.status(403).json({ error: "Seul le corps pastoral peut générer les cultes." });
+  }
+  const mois = String(req.body?.mois || '').slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(mois)) {
+    return res.status(400).json({ error: 'Format attendu : AAAA-MM (ex. 2026-08).' });
+  }
+  const [annee, m] = mois.split('-').map(Number);
+  const nbJours = new Date(annee, m, 0).getDate();
+  const cultes = [];
+  for (let j = 1; j <= nbJours; j++) {
+    const d = new Date(annee, m - 1, j);
+    const jour = d.getDay();
+    if (jour === 0) cultes.push({ date: `${mois}-${String(j).padStart(2, '0')}`, titre: `Culte du dimanche ${j}/${String(m).padStart(2, '0')}` });
+    if (jour === 3) cultes.push({ date: `${mois}-${String(j).padStart(2, '0')}`, titre: `Culte du mercredi soir ${j}/${String(m).padStart(2, '0')}` });
+  }
+  let crees = 0;
+  for (const c of cultes) {
+    const existe = await db.get(
+      "SELECT id FROM evenements WHERE type = 'culte' AND date = ? AND portee = 'assemblee'", c.date);
+    if (!existe) {
+      await db.insert(
+        "INSERT INTO evenements (type, titre, date, portee, created_by) VALUES ('culte', ?, ?, 'assemblee', ?)",
+        c.titre, c.date, req.user.id);
+      crees++;
+    }
+  }
+  res.status(201).json({ ok: true, crees, total: cultes.length });
+});
+
 /** DELETE /api/evenements/:id — suppression (présences supprimées en cascade). */
 router.delete('/:id', requireEncadrement, async (req, res) => {
   const ev = await chargerEvenement(req, res);

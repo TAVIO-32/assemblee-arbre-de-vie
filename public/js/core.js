@@ -242,6 +242,7 @@ function elementsNav(u) {
       ['#/departements', 'Départements'],
       ['#/presences', 'Présences'],
       ['#/statistiques', 'Statistiques'],
+      ['#/evolution', 'Évolution'],
       ['#/cotisations', 'Cotisations'],
       ['#/demandes', 'Demandes'],
       ['#/annonces', 'Annonces'],

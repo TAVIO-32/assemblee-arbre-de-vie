@@ -469,6 +469,113 @@ async function vueTribus(vue) {
   });
 }
 
+/* ============ Évolution de l'église (bilans mensuels) ============ */
+
+async function vueEvolution(vue) {
+  const r = await api.get('/stats/bilans');
+  const bilans = r.bilans || [];
+  const bilansChrono = bilans.slice().reverse();
+
+  vue.innerHTML = `
+    <h1>Évolution de l'église</h1>
+    <p class="sous-titre">Bilans mensuels sauvegardés — suivez la croissance et l'assiduité mois par mois.</p>
+
+    <div class="carte">
+      <h3>Sauvegarder le bilan du mois</h3>
+      <p class="aide" style="margin:0 0 10px">Calcule un instantané complet (effectifs, présences, comptages) et le stocke.
+        Relancer sur un mois déjà sauvegardé met à jour les chiffres.</p>
+      <div class="barre-actions">
+        <input type="month" id="mois-bilan" value="${aujourdhui().slice(0, 7)}" style="flex:0 0 auto;width:auto">
+        <button id="btn-sauver-bilan" class="btn-petit">Sauvegarder le bilan</button>
+      </div>
+    </div>
+
+    ${bilansChrono.length ? `
+    <h2>Courbe d'évolution</h2>
+    <div class="carte">
+      <h3>Fidèles actifs</h3>
+      ${colonnesEvolutionBilans(bilansChrono, 'fideles_actifs', (v) => nombre(v))}
+    </div>
+    <div class="carte">
+      <h3>Taux de présence</h3>
+      ${colonnesEvolution(bilansChrono.map((b) => ({ mois: b.mois, total: b.nb_pointages || 1, taux: b.taux_presence ?? 0 })))}
+    </div>
+    <div class="carte">
+      <h3>Comptage par culte (cumulé mensuel)</h3>
+      ${colonnesComptagesBilans(bilansChrono)}
+    </div>
+
+    <h2>Détail mois par mois</h2>
+    <div class="carte conteneur-table"><table>
+      <thead><tr>
+        <th>Mois</th><th class="numerique">Fidèles</th><th class="numerique">Nouveaux</th>
+        <th class="numerique">Événements</th><th class="numerique">Cultes</th>
+        <th class="numerique">Pointages</th><th>Présence</th>
+        <th class="numerique">H</th><th class="numerique">F</th><th class="numerique">Enf.</th>
+      </tr></thead>
+      <tbody>${bilans.map((b) => `<tr>
+        <td><strong>${moisFr(b.mois)}</strong></td>
+        <td class="numerique">${nombre(b.fideles_actifs)}</td>
+        <td class="numerique">${nombre(b.nouveaux_inscrits)}</td>
+        <td class="numerique">${nombre(b.nb_evenements)}</td>
+        <td class="numerique">${nombre(b.nb_cultes)}</td>
+        <td class="numerique">${nombre(b.nb_pointages)}</td>
+        <td>${jauge(b.taux_presence)}</td>
+        <td class="numerique">${nombre(b.comptage_hommes)}</td>
+        <td class="numerique">${nombre(b.comptage_femmes)}</td>
+        <td class="numerique">${nombre(b.comptage_enfants)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    ` : '<div class="encart-info">Aucun bilan sauvegardé. Cliquez sur « Sauvegarder le bilan » pour commencer le suivi.</div>'}`;
+
+  document.getElementById('btn-sauver-bilan').onclick = async () => {
+    const mois = document.getElementById('mois-bilan').value;
+    if (!mois) return toast('Choisissez un mois.', true);
+    const btn = document.getElementById('btn-sauver-bilan');
+    btn.disabled = true;
+    try {
+      await api.post('/stats/bilan', { mois });
+      toast(`Bilan de ${moisFr(mois)} sauvegardé.`);
+      vueEvolution(vue);
+    } catch (err) { toast(err.message, true); }
+    finally { btn.disabled = false; }
+  };
+}
+
+function colonnesEvolutionBilans(bilans, champ, format) {
+  if (!bilans.length) return '<p class="message-vide">Pas encore de données.</p>';
+  const max = Math.max(...bilans.map((b) => b[champ] || 0), 1);
+  return `
+    <div class="colonnes">
+      ${bilans.map((b) => {
+        const val = b[champ] || 0;
+        const pct = Math.round((val / max) * 100);
+        return `<div class="colonne" title="${moisFr(b.mois)} : ${format(val)}">
+          <span class="val">${format(val)}</span>
+          <div class="tige" style="height:${Math.max(pct, 1)}%"></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="axe-mois">${bilans.map((b) => `<span>${moisFr(b.mois)}</span>`).join('')}</div>`;
+}
+
+function colonnesComptagesBilans(bilans) {
+  if (!bilans.length) return '<p class="message-vide">Pas encore de données.</p>';
+  const max = Math.max(...bilans.map((b) => (b.comptage_hommes || 0) + (b.comptage_femmes || 0) + (b.comptage_enfants || 0)), 1);
+  return `
+    <div class="colonnes">
+      ${bilans.map((b) => {
+        const total = (b.comptage_hommes || 0) + (b.comptage_femmes || 0) + (b.comptage_enfants || 0);
+        const pct = Math.round((total / max) * 100);
+        return `<div class="colonne" title="${moisFr(b.mois)} : ${nombre(total)} (${nombre(b.comptage_hommes || 0)} H · ${nombre(b.comptage_femmes || 0)} F · ${nombre(b.comptage_enfants || 0)} enf.)">
+          <span class="val">${nombre(total)}</span>
+          <div class="tige" style="height:${Math.max(pct, 1)}%"></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="axe-mois">${bilans.map((b) => `<span>${moisFr(b.mois)}</span>`).join('')}</div>`;
+}
+
 /* ============ Administration des départements ============ */
 
 async function vueDepartements(vue) {

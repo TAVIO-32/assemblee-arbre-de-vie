@@ -19,6 +19,7 @@ const ROUTES = [
   },
   { motif: /^#\/validations$/,        nav: '#/validations',   acces: estDirection, vue: vueValidations },
   { motif: /^#\/statistiques$/,       nav: '#/statistiques',  acces: estDirection, vue: vueStatistiques },
+  { motif: /^#\/evolution$/,          nav: '#/evolution',     acces: estDirection, vue: vueEvolution },
   { motif: /^#\/fideles$/,            nav: '#/fideles',       acces: estEncadrant, vue: vueFideles },
   { motif: /^#\/fideles\/(\d+)$/,     nav: '#/fideles',       acces: estEncadrant, vue: vueFicheFidele },
   { motif: /^#\/tribus$/,             nav: '#/tribus',        acces: estDirection, vue: vueTribus },

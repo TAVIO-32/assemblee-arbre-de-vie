@@ -296,6 +296,15 @@ async function vuePresences(vue) {
     <h1>Fiches de présence</h1>
     <p class="sous-titre">Créez une fiche, puis pointez chaque fidèle : présent, absent ou excusé.</p>
 
+    ${direction ? `<div class="carte">
+      <h3>Générer les cultes du mois</h3>
+      <p class="aide" style="margin:0 0 10px">Crée automatiquement un culte pour chaque dimanche et chaque mercredi soir du mois choisi.</p>
+      <div class="barre-actions">
+        <input type="month" id="mois-cultes" value="${aujourdhui().slice(0, 7)}" style="flex:0 0 auto;width:auto">
+        <button id="btn-generer-cultes" class="btn-petit">Générer les cultes</button>
+      </div>
+    </div>` : ''}
+
     <div class="carte">
       <h3>Nouvelle fiche de présence</h3>
       <form id="form-ev">
@@ -379,6 +388,19 @@ async function vuePresences(vue) {
       } catch (err) { toast(err.message, true); }
     };
   });
+
+  const btnGenerer = document.getElementById('btn-generer-cultes');
+  if (btnGenerer) btnGenerer.onclick = async () => {
+    const mois = document.getElementById('mois-cultes').value;
+    if (!mois) return toast('Choisissez un mois.', true);
+    btnGenerer.disabled = true;
+    try {
+      const r2 = await api.post('/evenements/generer-cultes', { mois });
+      toast(`${r2.crees} culte(s) créé(s) sur ${r2.total} prévu(s).`);
+      vuePresences(vue);
+    } catch (err) { toast(err.message, true); }
+    finally { btnGenerer.disabled = false; }
+  };
 }
 
 function etiquettePortee(ev) {

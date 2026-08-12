@@ -133,6 +133,23 @@ function tables(idAuto, horodatage) {
       saisi_par      INTEGER REFERENCES users(id) ON DELETE SET NULL,
       updated_at     ${horodatage}
     )`,
+    bilans_mensuels: `CREATE TABLE IF NOT EXISTS bilans_mensuels (
+      id                 ${idAuto},
+      mois               TEXT NOT NULL UNIQUE,
+      fideles_actifs     INTEGER NOT NULL DEFAULT 0,
+      nouveaux_inscrits  INTEGER NOT NULL DEFAULT 0,
+      nb_evenements      INTEGER NOT NULL DEFAULT 0,
+      nb_cultes          INTEGER NOT NULL DEFAULT 0,
+      nb_pointages       INTEGER NOT NULL DEFAULT 0,
+      taux_presence      INTEGER,
+      comptage_hommes    INTEGER NOT NULL DEFAULT 0,
+      comptage_femmes    INTEGER NOT NULL DEFAULT 0,
+      comptage_enfants   INTEGER NOT NULL DEFAULT 0,
+      par_tribu          TEXT DEFAULT '[]',
+      par_departement    TEXT DEFAULT '[]',
+      saisi_par          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at         ${horodatage}
+    )`,
   };
 }
 
@@ -140,6 +157,7 @@ function tables(idAuto, horodatage) {
 const ORDRE_TABLES = [
   'tribus', 'departements', 'users', 'membres_departements',
   'evenements', 'presences', 'cotisations', 'demandes', 'annonces', 'comptages',
+  'bilans_mensuels',
 ];
 
 const INDEX = [
