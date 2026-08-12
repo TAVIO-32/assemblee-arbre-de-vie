@@ -37,7 +37,7 @@ const engine = DATABASE_URL ? 'pg' : 'sqlite';
  * figurent volontairement PAS dans le schéma : elles évoluent avec le métier
  * et sont validées côté application (server/constants.js). Cela évite des
  * migrations de contraintes à chaque ajout de rôle ou de type d'événement. */
-function tables(idAuto, horodatage) {
+function tables(idAuto, horodatage, typeBinaire) {
   return {
     tribus: `CREATE TABLE IF NOT EXISTS tribus (
       id            ${idAuto},
@@ -154,6 +154,12 @@ function tables(idAuto, horodatage) {
       cle    TEXT PRIMARY KEY,
       valeur TEXT
     )`,
+    fichiers: `CREATE TABLE IF NOT EXISTS fichiers (
+      nom      TEXT PRIMARY KEY,
+      mime     TEXT NOT NULL,
+      donnees  ${typeBinaire} NOT NULL,
+      created_at ${horodatage}
+    )`,
   };
 }
 
@@ -161,7 +167,7 @@ function tables(idAuto, horodatage) {
 const ORDRE_TABLES = [
   'tribus', 'departements', 'users', 'membres_departements',
   'evenements', 'presences', 'cotisations', 'demandes', 'annonces', 'comptages',
-  'bilans_mensuels', 'parametres',
+  'bilans_mensuels', 'parametres', 'fichiers',
 ];
 
 const INDEX = [
@@ -225,7 +231,7 @@ if (engine === 'pg') {
       }
     },
     async init() {
-      const t = tables('SERIAL PRIMARY KEY', 'TIMESTAMPTZ NOT NULL DEFAULT now()');
+      const t = tables('SERIAL PRIMARY KEY', 'TIMESTAMPTZ NOT NULL DEFAULT now()', 'BYTEA');
       for (const nom of ORDRE_TABLES) await pool.query(t[nom]);
       console.log('🐘 Base PostgreSQL prête.');
     },
@@ -242,7 +248,7 @@ if (engine === 'pg') {
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
 
-  const T = tables('INTEGER PRIMARY KEY AUTOINCREMENT', "TEXT NOT NULL DEFAULT (datetime('now'))");
+  const T = tables('INTEGER PRIMARY KEY AUTOINCREMENT', "TEXT NOT NULL DEFAULT (datetime('now'))", 'BLOB');
 
   function colonnes(table) {
     return sqlite.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);

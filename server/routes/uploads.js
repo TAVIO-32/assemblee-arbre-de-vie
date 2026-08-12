@@ -1,35 +1,24 @@
 /**
  * routes/uploads.js — Upload de photos (profil, leaders) et du logo.
  *
- * Les images sont stockées dans data/uploads/ sous un nom unique.
+ * Les images sont stockées dans la table « fichiers » (BLOB/BYTEA) pour
+ * persister sans disque dédié (Render free tier, etc.).
  * Servies via GET /api/uploads/:nom.
  */
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
+const path = require('path');
 const db = require('../db');
 const { requireAuth, requireDirection } = require('../middleware/auth');
 
 const router = express.Router();
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
 const TYPES_AUTORISES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const TAILLE_MAX = 2 * 1024 * 1024; // 2 Mo
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, crypto.randomBytes(12).toString('hex') + ext);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: TAILLE_MAX },
   fileFilter: (req, file, cb) => {
     if (TYPES_AUTORISES.has(file.mimetype)) cb(null, true);
@@ -37,25 +26,40 @@ const upload = multer({
   },
 });
 
-/** GET /api/uploads/:nom — sert une image uploadée. */
-router.get('/:nom', (req, res) => {
+async function sauvegarderFichier(buffer, mimetype, originalname) {
+  const ext = path.extname(originalname).toLowerCase() || '.jpg';
+  const nom = crypto.randomBytes(12).toString('hex') + ext;
+  await db.run(
+    'INSERT INTO fichiers (nom, mime, donnees) VALUES (?, ?, ?)',
+    nom, mimetype, buffer,
+  );
+  return nom;
+}
+
+async function supprimerFichier(nom) {
+  if (nom) await db.run('DELETE FROM fichiers WHERE nom = ?', nom);
+}
+
+/** GET /api/uploads/:nom — sert une image depuis la base. */
+router.get('/:nom', async (req, res) => {
   const nom = path.basename(req.params.nom);
-  const fichier = path.join(UPLOAD_DIR, nom);
-  if (!fs.existsSync(fichier)) return res.status(404).json({ error: 'Image introuvable.' });
+  const row = await db.get('SELECT mime, donnees FROM fichiers WHERE nom = ?', nom);
+  if (!row) return res.status(404).json({ error: 'Image introuvable.' });
+  res.set('Content-Type', row.mime);
   res.set('Cache-Control', 'public, max-age=86400');
-  res.sendFile(fichier);
+  res.send(Buffer.isBuffer(row.donnees) ? row.donnees : Buffer.from(row.donnees));
 });
 
 /**
  * POST /api/uploads/photo — upload de la photo de profil de l'utilisateur connecté.
- * Champ du formulaire : « photo ».
  */
 router.post('/photo', requireAuth, upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Aucune image reçue.' });
   const ancienne = await db.get('SELECT photo FROM users WHERE id = ?', req.user.id);
-  if (ancienne && ancienne.photo) supprimerFichier(ancienne.photo);
-  await db.run('UPDATE users SET photo = ? WHERE id = ?', req.file.filename, req.user.id);
-  res.json({ ok: true, photo: req.file.filename });
+  if (ancienne && ancienne.photo) await supprimerFichier(ancienne.photo);
+  const nom = await sauvegarderFichier(req.file.buffer, req.file.mimetype, req.file.originalname);
+  await db.run('UPDATE users SET photo = ? WHERE id = ?', nom, req.user.id);
+  res.json({ ok: true, photo: nom });
 });
 
 /**
@@ -66,55 +70,53 @@ router.post('/photo/:id', requireAuth, requireDirection, upload.single('photo'),
   const user = await db.get('SELECT id, photo FROM users WHERE id = ?', id);
   if (!user) return res.status(404).json({ error: 'Fidèle introuvable.' });
   if (!req.file) return res.status(400).json({ error: 'Aucune image reçue.' });
-  if (user.photo) supprimerFichier(user.photo);
-  await db.run('UPDATE users SET photo = ? WHERE id = ?', req.file.filename, id);
-  res.json({ ok: true, photo: req.file.filename });
+  if (user.photo) await supprimerFichier(user.photo);
+  const nom = await sauvegarderFichier(req.file.buffer, req.file.mimetype, req.file.originalname);
+  await db.run('UPDATE users SET photo = ? WHERE id = ?', nom, id);
+  res.json({ ok: true, photo: nom });
 });
 
 /** DELETE /api/uploads/photo — supprime sa propre photo. */
 router.delete('/photo', requireAuth, async (req, res) => {
   const u = await db.get('SELECT photo FROM users WHERE id = ?', req.user.id);
-  if (u && u.photo) supprimerFichier(u.photo);
+  if (u && u.photo) await supprimerFichier(u.photo);
   await db.run('UPDATE users SET photo = NULL WHERE id = ?', req.user.id);
   res.json({ ok: true });
 });
 
 /**
  * POST /api/uploads/logo — upload du logo de l'assemblée (corps pastoral).
- * Champ du formulaire : « logo ».
  */
 router.post('/logo', requireAuth, requireDirection, upload.single('logo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Aucune image reçue.' });
   const ancien = await db.get("SELECT valeur FROM parametres WHERE cle = 'logo'");
-  if (ancien && ancien.valeur) supprimerFichier(ancien.valeur);
+  if (ancien && ancien.valeur) await supprimerFichier(ancien.valeur);
+  const nom = await sauvegarderFichier(req.file.buffer, req.file.mimetype, req.file.originalname);
   await db.run(`
     INSERT INTO parametres (cle, valeur) VALUES ('logo', ?)
     ON CONFLICT (cle) DO UPDATE SET valeur = EXCLUDED.valeur
-  `, req.file.filename);
-  res.json({ ok: true, logo: req.file.filename });
+  `, nom);
+  res.json({ ok: true, logo: nom });
 });
 
 /** DELETE /api/uploads/logo — supprime le logo (retour au défaut). */
 router.delete('/logo', requireAuth, requireDirection, async (req, res) => {
   const ancien = await db.get("SELECT valeur FROM parametres WHERE cle = 'logo'");
-  if (ancien && ancien.valeur) supprimerFichier(ancien.valeur);
+  if (ancien && ancien.valeur) await supprimerFichier(ancien.valeur);
   await db.run("DELETE FROM parametres WHERE cle = 'logo'");
   res.json({ ok: true });
 });
 
-/** GET /api/uploads/logo — renvoie le fichier logo ou 404. */
+/** GET /api/uploads/logo/current — renvoie le fichier logo ou 404. */
 router.get('/logo/current', async (req, res) => {
   const r = await db.get("SELECT valeur FROM parametres WHERE cle = 'logo'");
   if (!r || !r.valeur) return res.status(404).json({ error: 'Aucun logo.' });
-  const fichier = path.join(UPLOAD_DIR, r.valeur);
-  if (!fs.existsSync(fichier)) return res.status(404).json({ error: 'Fichier logo introuvable.' });
+  const row = await db.get('SELECT mime, donnees FROM fichiers WHERE nom = ?', r.valeur);
+  if (!row) return res.status(404).json({ error: 'Fichier logo introuvable.' });
+  res.set('Content-Type', row.mime);
   res.set('Cache-Control', 'public, max-age=3600');
-  res.sendFile(fichier);
+  res.send(Buffer.isBuffer(row.donnees) ? row.donnees : Buffer.from(row.donnees));
 });
-
-function supprimerFichier(nom) {
-  try { fs.unlinkSync(path.join(UPLOAD_DIR, nom)); } catch { /* ignoré */ }
-}
 
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
