@@ -1,0 +1,27 @@
+{
+  "name": "assemblee-arbre-de-vie",
+  "version": "1.0.0",
+  "description": "Application de suivi des fidèles de l'Assemblée Arbre de Vie (tribus, départements, présences)",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": [
+    "église",
+    "assemblée",
+    "tribus",
+    "départements",
+    "suivi",
+    "présences"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0"
+  }
+}
