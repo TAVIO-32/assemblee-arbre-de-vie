@@ -123,13 +123,23 @@ function tables(idAuto, horodatage) {
       nb_destinataires INTEGER NOT NULL DEFAULT 0,
       created_at     ${horodatage}
     )`,
+    comptages: `CREATE TABLE IF NOT EXISTS comptages (
+      id             ${idAuto},
+      evenement_id   INTEGER NOT NULL UNIQUE REFERENCES evenements(id) ON DELETE CASCADE,
+      hommes         INTEGER NOT NULL DEFAULT 0,
+      femmes         INTEGER NOT NULL DEFAULT 0,
+      enfants        INTEGER NOT NULL DEFAULT 0,
+      notes          TEXT DEFAULT '',
+      saisi_par      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      updated_at     ${horodatage}
+    )`,
   };
 }
 
 // Ordre de création : les tables référencées d'abord.
 const ORDRE_TABLES = [
   'tribus', 'departements', 'users', 'membres_departements',
-  'evenements', 'presences', 'cotisations', 'demandes', 'annonces',
+  'evenements', 'presences', 'cotisations', 'demandes', 'annonces', 'comptages',
 ];
 
 const INDEX = [
@@ -143,6 +153,7 @@ const INDEX = [
   'CREATE INDEX IF NOT EXISTS idx_presences_ev      ON presences(evenement_id)',
   'CREATE INDEX IF NOT EXISTS idx_cotisations_membre ON cotisations(membre_id)',
   'CREATE INDEX IF NOT EXISTS idx_demandes_membre   ON demandes(membre_id)',
+  'CREATE INDEX IF NOT EXISTS idx_comptages_ev      ON comptages(evenement_id)',
 ];
 
 let db; // objet exporté

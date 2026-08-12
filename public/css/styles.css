@@ -460,6 +460,57 @@ td.numerique, th.numerique { text-align: right; }
 }
 .lien-wa a { color: var(--vert); font-weight: 700; text-decoration: none; white-space: nowrap; }
 
+/* ---------- Comptage par catégorie ---------- */
+.onglets-fiche {
+  display: flex; background: #f1f4f3; border-radius: 10px; padding: 4px;
+  margin-bottom: 14px;
+}
+.onglets-fiche button {
+  flex: 1; background: none; color: var(--texte-doux); padding: 9px 12px;
+  font-size: .88rem; border-radius: 8px;
+}
+.onglets-fiche button.actif {
+  background: var(--carte); color: var(--primaire-fonce);
+  box-shadow: var(--ombre); font-weight: 700;
+}
+
+.comptage-zone { display: flex; flex-direction: column; gap: 14px; }
+.comptage-categorie {
+  background: var(--carte); border-radius: var(--rayon); box-shadow: var(--ombre);
+  padding: 16px; display: flex; align-items: center; gap: 16px;
+}
+.comptage-categorie .cat-icone {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.4rem; flex: 0 0 48px;
+}
+.comptage-categorie .cat-icone.hommes  { background: #dbeafe; }
+.comptage-categorie .cat-icone.femmes  { background: #fce7f3; }
+.comptage-categorie .cat-icone.enfants { background: #fef9c3; }
+.comptage-categorie .cat-infos { flex: 1; }
+.comptage-categorie .cat-label { font-weight: 700; font-size: .95rem; }
+.comptage-categorie .cat-valeur { font-size: 1.5rem; font-weight: 800; color: var(--primaire); }
+.comptage-boutons { display: flex; gap: 6px; align-items: center; }
+.comptage-boutons button {
+  width: 44px; height: 44px; border-radius: 50%; font-size: 1.2rem; font-weight: 800;
+  padding: 0; display: grid; place-items: center;
+}
+.comptage-boutons .btn-moins { background: var(--rouge-pale); color: var(--rouge); }
+.comptage-boutons .btn-moins:hover { background: #fecaca; }
+.comptage-boutons .btn-plus { background: var(--vert-pale); color: var(--vert); }
+.comptage-boutons .btn-plus:hover { background: #bbf7d0; }
+
+.comptage-total {
+  background: var(--primaire-pale); border-radius: var(--rayon);
+  padding: 18px 16px; text-align: center;
+}
+.comptage-total .total-valeur {
+  font-size: 2.5rem; font-weight: 800; color: var(--primaire); line-height: 1.1;
+}
+.comptage-total .total-label { font-size: .85rem; color: var(--texte-doux); margin-top: 2px; }
+
+.comptage-notes { margin-top: 4px; }
+.comptage-notes textarea { min-height: 60px; }
+
 /* ---------- Divers ---------- */
 .retour { display: inline-block; margin-bottom: 12px; }
 .filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 14px; }

@@ -190,6 +190,14 @@ router.get('/global', requireDirection, async (req, res) => {
   const dejaCites = new Set(plusAssidus.map((m) => m.id));
   const moinsAssidus = classes.slice().reverse().filter((m) => !dejaCites.has(m.id)).slice(0, 5);
 
+  const comptages = await db.get(`
+    SELECT COALESCE(SUM(hommes), 0) AS total_hommes,
+           COALESCE(SUM(femmes), 0) AS total_femmes,
+           COALESCE(SUM(enfants), 0) AS total_enfants,
+           COUNT(*) AS nb_comptages
+    FROM comptages
+  `);
+
   res.json({
     effectifs,
     presence: presenceGlobale,
@@ -201,6 +209,7 @@ router.get('/global', requireDirection, async (req, res) => {
     plus_assidus: plusAssidus,
     moins_assidus: moinsAssidus,
     alertes_absences: await membresEnAlerte(),
+    comptages,
   });
 });
 
@@ -231,8 +240,10 @@ router.get('/tribu/:id', async (req, res) => {
       (SELECT COUNT(*) FROM presences p JOIN users u ON u.id = p.membre_id
         WHERE p.evenement_id = e.id AND u.tribu_id = ?) AS nb_pointes,
       (SELECT COUNT(*) FROM presences p JOIN users u ON u.id = p.membre_id
-        WHERE p.evenement_id = e.id AND u.tribu_id = ? AND p.statut = 'present') AS nb_presents
+        WHERE p.evenement_id = e.id AND u.tribu_id = ? AND p.statut = 'present') AS nb_presents,
+      c.hommes AS comptage_hommes, c.femmes AS comptage_femmes, c.enfants AS comptage_enfants
     FROM evenements e
+    LEFT JOIN comptages c ON c.evenement_id = e.id
     WHERE e.portee = 'assemblee' OR e.tribu_id = ?
     ORDER BY e.date DESC, e.id DESC LIMIT 10
   `, id, id, id);
@@ -273,8 +284,10 @@ router.get('/departement/:id', async (req, res) => {
   const evenements = await db.all(`
     SELECT e.id, e.titre, e.type, e.date, e.portee,
       (SELECT COUNT(*) FROM presences p WHERE p.evenement_id = e.id) AS nb_pointes,
-      (SELECT COUNT(*) FROM presences p WHERE p.evenement_id = e.id AND p.statut = 'present') AS nb_presents
+      (SELECT COUNT(*) FROM presences p WHERE p.evenement_id = e.id AND p.statut = 'present') AS nb_presents,
+      c.hommes AS comptage_hommes, c.femmes AS comptage_femmes, c.enfants AS comptage_enfants
     FROM evenements e
+    LEFT JOIN comptages c ON c.evenement_id = e.id
     WHERE e.departement_id = ?
     ORDER BY e.date DESC, e.id DESC LIMIT 10
   `, id);

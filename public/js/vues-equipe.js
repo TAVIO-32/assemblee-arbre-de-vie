@@ -261,14 +261,17 @@ function listeEvenementsCourte(evenements) {
   if (!evenements || !evenements.length) {
     return '<p class="message-vide">Aucune fiche de présence pour le moment.</p>';
   }
-  return `<div class="liste">${evenements.map((ev) => `<div class="element">
+  return `<div class="liste">${evenements.map((ev) => {
+    const totalC = (ev.comptage_hommes || 0) + (ev.comptage_femmes || 0) + (ev.comptage_enfants || 0);
+    return `<div class="element">
     <div class="infos">
       <div class="nom">${esc(ev.titre)}
         <span class="badge badge-teal">${esc(etat.ref.types_evenement[ev.type] || ev.type)}</span></div>
-      <div class="detail">${dateFr(ev.date)} · ${nombre(ev.nb_presents)} présent(s) sur ${nombre(ev.nb_pointes)} pointé(s)</div>
+      <div class="detail">${dateFr(ev.date)} · ${nombre(ev.nb_presents)} présent(s) sur ${nombre(ev.nb_pointes)} pointé(s)${totalC ? ` · comptage : ${nombre(totalC)}` : ''}</div>
     </div>
     <a class="btn btn-petit btn-secondaire" href="#/presences/${ev.id}">Ouvrir la fiche</a>
-  </div>`).join('')}</div>`;
+  </div>`;
+  }).join('')}</div>`;
 }
 
 /* ============ Liste des événements / fiches de présence ============ */
@@ -316,6 +319,7 @@ async function vuePresences(vue) {
     <div class="liste">
       ${r.evenements.map((ev) => {
         const reste = Math.max(ev.nb_concernes - ev.nb_pointes, 0);
+        const totalComptage = (ev.comptage_hommes || 0) + (ev.comptage_femmes || 0) + (ev.comptage_enfants || 0);
         return `<div class="element" data-id="${ev.id}">
           <div class="infos">
             <div class="nom">${esc(ev.titre)}
@@ -326,6 +330,7 @@ async function vuePresences(vue) {
                 ? `<strong>${nombre(ev.nb_presents)}</strong> présent(s) sur ${nombre(ev.nb_pointes)} pointé(s)`
                 : 'aucun pointage'}
               ${reste ? ` · <span style="color:var(--ambre)">${nombre(reste)} fidèle(s) à pointer</span>` : ' · ✓ fiche complète'}
+              ${totalComptage ? ` · comptage : <strong>${nombre(totalComptage)}</strong> (${nombre(ev.comptage_hommes || 0)} H · ${nombre(ev.comptage_femmes || 0)} F · ${nombre(ev.comptage_enfants || 0)} enf.)` : ''}
             </div>
           </div>
           <div class="actions">
@@ -398,16 +403,29 @@ async function ouvrirCreationFiche({ portee, id, nom }) {
 /* ============ LA fiche de présence ============ */
 
 async function vueFichePresence(vue, evenementId) {
-  const r = await api.get(`/evenements/${evenementId}/presences`);
+  const [r, rc] = await Promise.all([
+    api.get(`/evenements/${evenementId}/presences`),
+    api.get(`/evenements/${evenementId}/comptage`),
+  ]);
   const ev = r.evenement;
 
   // Statuts en cours de saisie, pré-remplis avec ce qui est déjà enregistré.
   const saisie = new Map(r.feuille.map((l) => [l.membre_id, l.statut || null]));
   let recherche = '';
 
+  // Comptage par catégorie (hommes / femmes / enfants).
+  const comptage = {
+    hommes: rc.comptage ? rc.comptage.hommes : 0,
+    femmes: rc.comptage ? rc.comptage.femmes : 0,
+    enfants: rc.comptage ? rc.comptage.enfants : 0,
+    notes: rc.comptage ? rc.comptage.notes || '' : '',
+  };
+
   // Sur une fiche d'assemblée, on regroupe visuellement par tribu.
   const grouper = ev.portee === 'assemblee' &&
     new Set(r.feuille.map((l) => l.tribu_nom || '')).size > 1;
+
+  let ongletActif = 'nominatif';
 
   vue.innerHTML = `
     <a href="#/presences" class="btn btn-petit btn-neutre retour">← Retour aux fiches</a>
@@ -422,25 +440,134 @@ async function vueFichePresence(vue, evenementId) {
       <div class="fiche-compteurs" id="compteurs"></div>
     </div>
 
-    ${r.feuille.length > 8 ? `<div class="carte" style="padding:10px 12px">
-      <input id="recherche" placeholder="🔍 Rechercher un fidèle…" style="margin:0">
-    </div>` : ''}
+    <div class="onglets-fiche" id="onglets-fiche">
+      <button data-onglet="nominatif" class="actif">Pointage nominatif</button>
+      <button data-onglet="comptage">Comptage</button>
+    </div>
 
-    ${r.feuille.length ? `<div class="barre-actions" style="margin-bottom:12px">
-      <button class="btn-petit btn-vert" id="btn-tous-presents">✓ Tout présent</button>
-      <button class="btn-petit btn-neutre" id="btn-reinitialiser">Effacer la saisie</button>
-    </div>` : ''}
+    <div id="zone-nominatif">
+      ${r.feuille.length > 8 ? `<div class="carte" style="padding:10px 12px">
+        <input id="recherche" placeholder="🔍 Rechercher un fidèle…" style="margin:0">
+      </div>` : ''}
 
-    <div class="liste" id="feuille"></div>
+      ${r.feuille.length ? `<div class="barre-actions" style="margin-bottom:12px">
+        <button class="btn-petit btn-vert" id="btn-tous-presents">✓ Tout présent</button>
+        <button class="btn-petit btn-neutre" id="btn-reinitialiser">Effacer la saisie</button>
+      </div>` : ''}
 
-    ${r.feuille.length ? `<div class="barre-enregistrement">
-      <span class="resume" id="resume"></span>
-      <button class="btn-vert" id="btn-enregistrer">💾 Enregistrer</button>
-    </div>` : ''}`;
+      <div class="liste" id="feuille"></div>
 
+      ${r.feuille.length ? `<div class="barre-enregistrement">
+        <span class="resume" id="resume"></span>
+        <button class="btn-vert" id="btn-enregistrer">💾 Enregistrer</button>
+      </div>` : ''}
+    </div>
+
+    <div id="zone-comptage" style="display:none">
+      <p class="aide" style="margin:0 0 14px">Comptez les personnes présentes par catégorie.
+        Le total se calcule automatiquement.</p>
+      <div class="comptage-zone">
+        <div class="comptage-categorie">
+          <div class="cat-icone hommes">👨</div>
+          <div class="cat-infos"><div class="cat-label">Hommes</div>
+            <div class="cat-valeur" id="val-hommes">${comptage.hommes}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="hommes" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="hommes" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="comptage-categorie">
+          <div class="cat-icone femmes">👩</div>
+          <div class="cat-infos"><div class="cat-label">Femmes</div>
+            <div class="cat-valeur" id="val-femmes">${comptage.femmes}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="femmes" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="femmes" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="comptage-categorie">
+          <div class="cat-icone enfants">👦</div>
+          <div class="cat-infos"><div class="cat-label">Enfants</div>
+            <div class="cat-valeur" id="val-enfants">${comptage.enfants}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="enfants" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="enfants" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="comptage-total">
+          <div class="total-valeur" id="val-total">${comptage.hommes + comptage.femmes + comptage.enfants}</div>
+          <div class="total-label">Total des personnes présentes</div>
+        </div>
+        <div class="comptage-notes">
+          <label>Notes (optionnel)</label>
+          <textarea id="comptage-notes" placeholder="ex. Beaucoup d'invités aujourd'hui…">${esc(comptage.notes)}</textarea>
+        </div>
+      </div>
+      <div class="barre-enregistrement">
+        <span class="resume" id="resume-comptage"></span>
+        <button class="btn-vert" id="btn-enregistrer-comptage">💾 Enregistrer le comptage</button>
+      </div>
+    </div>`;
+
+  const zoneNominatif = document.getElementById('zone-nominatif');
+  const zoneComptage = document.getElementById('zone-comptage');
   const zoneFeuille = document.getElementById('feuille');
   const zoneCompteurs = document.getElementById('compteurs');
   const zoneResume = document.getElementById('resume');
+
+  // Onglets : pointage nominatif vs comptage.
+  document.getElementById('onglets-fiche').querySelectorAll('button').forEach((b) => {
+    b.onclick = () => {
+      ongletActif = b.dataset.onglet;
+      document.getElementById('onglets-fiche').querySelectorAll('button').forEach((x) => {
+        x.className = x.dataset.onglet === ongletActif ? 'actif' : '';
+      });
+      zoneNominatif.style.display = ongletActif === 'nominatif' ? '' : 'none';
+      zoneComptage.style.display = ongletActif === 'comptage' ? '' : 'none';
+    };
+  });
+
+  // --- Comptage : +/- par catégorie ---
+  function majComptageAffichage() {
+    document.getElementById('val-hommes').textContent = comptage.hommes;
+    document.getElementById('val-femmes').textContent = comptage.femmes;
+    document.getElementById('val-enfants').textContent = comptage.enfants;
+    const total = comptage.hommes + comptage.femmes + comptage.enfants;
+    document.getElementById('val-total').textContent = total;
+    const resumeC = document.getElementById('resume-comptage');
+    if (resumeC) {
+      resumeC.textContent = total
+        ? `${total} personne(s) : ${comptage.hommes} H · ${comptage.femmes} F · ${comptage.enfants} enfant(s)`
+        : 'Aucune personne comptée.';
+    }
+  }
+
+  zoneComptage.querySelectorAll('.comptage-boutons button').forEach((b) => {
+    b.onclick = () => {
+      const cat = b.dataset.cat;
+      const dir = Number(b.dataset.dir);
+      comptage[cat] = Math.max(0, comptage[cat] + dir);
+      majComptageAffichage();
+    };
+  });
+
+  const btnEnregistrerComptage = document.getElementById('btn-enregistrer-comptage');
+  btnEnregistrerComptage.onclick = async () => {
+    comptage.notes = document.getElementById('comptage-notes').value.trim();
+    btnEnregistrerComptage.disabled = true;
+    try {
+      await api.put(`/evenements/${evenementId}/comptage`, comptage);
+      toast('Comptage enregistré.');
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      btnEnregistrerComptage.disabled = false;
+    }
+  };
+
+  majComptageAffichage();
+
+  // --- Pointage nominatif (existant) ---
 
   /** Redessine la liste des fidèles selon la recherche en cours. */
   function dessiner() {
@@ -482,7 +609,6 @@ async function vueFichePresence(vue, evenementId) {
       el.querySelectorAll('.segments button').forEach((b) => {
         b.onclick = () => {
           const statut = b.dataset.statut;
-          // Un second appui sur le même statut annule le pointage.
           const nouveau = saisie.get(membreId) === statut ? null : statut;
           saisie.set(membreId, nouveau);
           el.className = 'element' + (nouveau ? ' pointe-' + nouveau : '');

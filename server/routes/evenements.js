@@ -89,10 +89,13 @@ router.get('/', requireEncadrement, async (req, res) => {
     SELECT e.*, t.nom AS tribu_nom, d.nom AS departement_nom,
       ${nbConcernes} AS nb_concernes,
       ${nbPointes} AS nb_pointes,
-      ${nbPresents} AS nb_presents
+      ${nbPresents} AS nb_presents,
+      c.hommes AS comptage_hommes, c.femmes AS comptage_femmes,
+      c.enfants AS comptage_enfants
     FROM evenements e
     LEFT JOIN tribus t ON t.id = e.tribu_id
-    LEFT JOIN departements d ON d.id = e.departement_id`;
+    LEFT JOIN departements d ON d.id = e.departement_id
+    LEFT JOIN comptages c ON c.evenement_id = e.id`;
   // Les paramètres du filtre apparaissent une fois par sous-requête, dans
   // l'ordre où celles-ci figurent dans le SELECT.
   if (filtre) params.push(...filtre.params, ...filtre.params, ...filtre.params);
@@ -219,6 +222,37 @@ router.get('/:id/presences', requireEncadrement, async (req, res) => {
   `, ev.id, ...params);
 
   res.json({ evenement: ev, feuille });
+});
+
+/** GET /api/evenements/:id/comptage — comptage par catégorie (hommes / femmes / enfants). */
+router.get('/:id/comptage', requireEncadrement, async (req, res) => {
+  const ev = await chargerEvenement(req, res);
+  if (!ev) return;
+  const comptage = await db.get('SELECT * FROM comptages WHERE evenement_id = ?', ev.id);
+  res.json({ evenement: ev, comptage: comptage || null });
+});
+
+/**
+ * PUT /api/evenements/:id/comptage — enregistre le comptage par catégorie.
+ * Corps : { hommes, femmes, enfants, notes? }
+ */
+router.put('/:id/comptage', requireEncadrement, async (req, res) => {
+  const ev = await chargerEvenement(req, res);
+  if (!ev) return;
+  const hommes = Math.max(0, Number(req.body?.hommes) || 0);
+  const femmes = Math.max(0, Number(req.body?.femmes) || 0);
+  const enfants = Math.max(0, Number(req.body?.enfants) || 0);
+  const notes = String(req.body?.notes || '').trim();
+
+  await db.run(`
+    INSERT INTO comptages (evenement_id, hommes, femmes, enfants, notes, saisi_par)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT (evenement_id)
+    DO UPDATE SET hommes = EXCLUDED.hommes, femmes = EXCLUDED.femmes,
+                  enfants = EXCLUDED.enfants, notes = EXCLUDED.notes,
+                  saisi_par = EXCLUDED.saisi_par
+  `, ev.id, hommes, femmes, enfants, notes, req.user.id);
+  res.json({ ok: true, total: hommes + femmes + enfants });
 });
 
 /**

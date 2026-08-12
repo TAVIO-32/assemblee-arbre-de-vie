@@ -43,6 +43,16 @@ async function vueAccueilDirection(vue) {
     <h2>Évolution du taux de présence</h2>
     <div class="carte">${colonnesEvolution(s.evolution)}</div>
 
+    ${s.comptages && s.comptages.nb_comptages ? `<div class="carte">
+      <h3>Comptage des cultes (${nombre(s.comptages.nb_comptages)} événement(s))</h3>
+      <div class="grille-stats" style="margin-bottom:0">
+        ${tuile(nombre(s.comptages.total_hommes), 'Hommes (cumulé)', { ton: 'accent' })}
+        ${tuile(nombre(s.comptages.total_femmes), 'Femmes (cumulé)', { ton: 'accent' })}
+        ${tuile(nombre(s.comptages.total_enfants), 'Enfants (cumulé)', { ton: 'accent' })}
+        ${tuile(nombre(s.comptages.total_hommes + s.comptages.total_femmes + s.comptages.total_enfants), 'Total cumulé')}
+      </div>
+    </div>` : ''}
+
     <h2>Hiérarchie pastorale</h2>
     <div class="carte"><div class="hierarchie">
       ${s.par_role.map((r, i) => `
