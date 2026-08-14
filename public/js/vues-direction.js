@@ -899,3 +899,203 @@ async function vueFiches(vue) {
 
   rendu();
 }
+
+/* ============ Versets bibliques en direct ============ */
+
+async function vueVersets(vue) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    vue.innerHTML = `<h1>Versets en direct</h1>
+      <div class="encart-alerte">Votre navigateur ne supporte pas la reconnaissance vocale.
+      Utilisez <strong>Google Chrome</strong> sur ordinateur ou Android.</div>`;
+    return;
+  }
+
+  const LIVRES_REGEX = [
+    'genese','exode','levitique','nombres','deuteronome','josue','juges','ruth',
+    'samuel','rois','chroniques','esdras','nehemie','esther','job',
+    'psaume','psaumes','proverbes','ecclesiaste','cantique','cantique des cantiques',
+    'esaie','isaie','jeremie','lamentations','ezechiel','daniel',
+    'osee','joel','amos','abdias','jonas','michee','nahum','habacuc',
+    'sophonie','aggee','zacharie','malachie',
+    'matthieu','marc','luc','jean','actes',
+    'romains','corinthiens','galates','ephesiens','philippiens','colossiens',
+    'thessaloniciens','timothee','tite','philemon','hebreux',
+    'jacques','pierre','jude','apocalypse'
+  ].join('|');
+
+  const PATTERN = new RegExp(
+    '(?:(premier|deuxieme|troisieme|1er|2e|3e|1|2|3)\\s+)?' +
+    '(' + LIVRES_REGEX + ')' +
+    '\\s+(?:chapitre\\s+)?(\\d+)' +
+    '(?:\\s*[:\\s,.]\\s*(?:verset\\s+|v\\s*)?(\\d+))?',
+    'gi'
+  );
+
+  let recognition = null;
+  let enEcoute = false;
+  let dernierVerset = '';
+
+  vue.innerHTML = `
+    <h1>Versets en direct</h1>
+    <p class="sous-titre">Detection automatique des versets cites par le pasteur.</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn-petit" id="btn-ecouter">Demarrer l'ecoute</button>
+      <button class="btn-petit btn-secondaire" id="btn-plein-ecran">Plein ecran</button>
+    </div>
+
+    <div class="carte" id="zone-ecoute" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span id="indicateur-micro" style="width:12px;height:12px;border-radius:50%;background:#dc2626;animation:pulse 1.5s infinite"></span>
+        <strong>Ecoute en cours...</strong>
+      </div>
+      <div id="transcription" style="color:var(--texte-doux);font-style:italic;min-height:40px;font-size:.9rem"></div>
+    </div>
+
+    <div id="zone-verset" style="margin-top:16px">
+      <div class="carte" style="text-align:center;padding:40px 20px">
+        <p class="message-vide">En attente d'un verset... Le pasteur cite un passage biblique et il s'affichera ici automatiquement.</p>
+      </div>
+    </div>
+
+    <div id="historique-versets" style="margin-top:24px"></div>
+
+    <style>
+      @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+      .verset-affiche { background:linear-gradient(135deg,#0f766e 0%,#115e59 100%); color:#fff;
+        border-radius:16px; padding:32px 24px; text-align:center; margin-bottom:16px; }
+      .verset-affiche .ref { font-size:1.4rem; font-weight:800; margin-bottom:12px; color:#fbbf24; }
+      .verset-affiche .texte { font-size:1.2rem; line-height:1.7; font-style:italic; }
+      .verset-mini { border-left:4px solid var(--primaire); padding:8px 12px; margin-bottom:8px;
+        background:var(--fond-carte); border-radius:0 8px 8px 0; }
+      .verset-mini .ref { font-weight:700; color:var(--primaire); font-size:.9rem; }
+      .verset-mini .texte { font-size:.85rem; color:var(--texte-doux); margin-top:4px; }
+    </style>`;
+
+  const historique = [];
+
+  async function chercherVerset(livre, chapitre, verset) {
+    const ref = verset ? livre + ' ' + chapitre + ':' + verset : livre + ' ' + chapitre;
+    if (ref === dernierVerset) return;
+    dernierVerset = ref;
+
+    const zone = document.getElementById('zone-verset');
+    zone.innerHTML = `<div class="verset-affiche">
+      <div class="ref">${esc(ref)}</div>
+      <div class="texte">Chargement...</div>
+    </div>`;
+
+    try {
+      const url = '/api/bible/' + encodeURIComponent(livre) + '/' + chapitre + (verset ? '/' + verset : '');
+      const r = await fetch(url).then((r) => r.json());
+      const texte = r.texte || 'Texte non disponible.';
+      const refAff = r.reference || ref;
+
+      zone.innerHTML = `<div class="verset-affiche">
+        <div class="ref">${esc(refAff)}</div>
+        <div class="texte">${esc(texte)}</div>
+      </div>`;
+
+      historique.unshift({ ref: refAff, texte });
+      if (historique.length > 20) historique.pop();
+      afficherHistorique();
+    } catch {
+      zone.innerHTML = `<div class="verset-affiche">
+        <div class="ref">${esc(ref)}</div>
+        <div class="texte">Impossible de charger le texte.</div>
+      </div>`;
+    }
+  }
+
+  function afficherHistorique() {
+    const el = document.getElementById('historique-versets');
+    if (!el || historique.length < 2) return;
+    el.innerHTML = '<h3 style="margin-bottom:8px">Versets precedents</h3>' +
+      historique.slice(1).map((v) =>
+        `<div class="verset-mini"><div class="ref">${esc(v.ref)}</div>
+         <div class="texte">${esc(v.texte)}</div></div>`
+      ).join('');
+  }
+
+  function analyserTexte(texte) {
+    const t = texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    let match;
+    PATTERN.lastIndex = 0;
+    while ((match = PATTERN.exec(t)) !== null) {
+      let prefixe = match[1] || '';
+      if (prefixe === '1er') prefixe = '1';
+      if (prefixe === '2e') prefixe = '2';
+      if (prefixe === '3e') prefixe = '3';
+      if (prefixe === 'premier') prefixe = '1';
+      if (prefixe === 'deuxieme') prefixe = '2';
+      if (prefixe === 'troisieme') prefixe = '3';
+
+      let livre = match[2];
+      if (prefixe) livre = prefixe + ' ' + livre;
+
+      const chapitre = match[3];
+      const verset = match[4] || null;
+      chercherVerset(livre, chapitre, verset);
+    }
+  }
+
+  function demarrerEcoute() {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (e) => {
+      let interim = '';
+      let final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+
+      const el = document.getElementById('transcription');
+      if (el) el.textContent = interim || final || '...';
+
+      if (final) analyserTexte(final);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      console.error('Speech error:', e.error);
+    };
+
+    recognition.onend = () => {
+      if (enEcoute) recognition.start();
+    };
+
+    recognition.start();
+    enEcoute = true;
+    document.getElementById('zone-ecoute').style.display = '';
+    document.getElementById('btn-ecouter').textContent = 'Arreter l\'ecoute';
+    document.getElementById('btn-ecouter').classList.add('btn-danger');
+  }
+
+  function arreterEcoute() {
+    enEcoute = false;
+    if (recognition) { recognition.abort(); recognition = null; }
+    document.getElementById('zone-ecoute').style.display = 'none';
+    document.getElementById('btn-ecouter').textContent = 'Demarrer l\'ecoute';
+    document.getElementById('btn-ecouter').classList.remove('btn-danger');
+  }
+
+  document.getElementById('btn-ecouter').onclick = () => {
+    if (enEcoute) arreterEcoute(); else demarrerEcoute();
+  };
+
+  document.getElementById('btn-plein-ecran').onclick = () => {
+    const el = document.getElementById('zone-verset');
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  };
+}

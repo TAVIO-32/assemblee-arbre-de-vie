@@ -261,6 +261,7 @@ function elementsNav(u) {
       ['#/annonces', 'Annonces'],
       ['#/qrcode', 'QR Code'],
       ['#/fiches', 'Fiches'],
+      ['#/versets', 'Versets en direct'],
     );
   } else if (estEncadrant(u)) {
     items.push(['#/accueil', 'Mon tableau de bord']);

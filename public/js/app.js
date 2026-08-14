@@ -33,6 +33,7 @@ const ROUTES = [
   { motif: /^#\/annonces$/,           nav: '#/annonces',      acces: estEncadrant, vue: vueAnnonces },
   { motif: /^#\/qrcode$/,             nav: '#/qrcode',        acces: estDirection, vue: vueQRCode },
   { motif: /^#\/fiches$/,             nav: '#/fiches',        acces: estDirection, vue: vueFiches },
+  { motif: /^#\/versets$/,            nav: '#/versets',       acces: estDirection, vue: vueVersets },
   { motif: /^#\/mes-presences$/,      nav: '#/mes-presences', acces: () => true,   vue: vueMesPresences },
   { motif: /^#\/mes-cotisations$/,    nav: '#/mes-cotisations', acces: () => true, vue: vueMesCotisations },
   { motif: /^#\/mes-demandes$/,       nav: '#/mes-demandes',  acces: () => true,   vue: vueMesDemandes },
