@@ -1,7 +1,7 @@
 {
-  "name": "Assemblee Arbre de Vie",
-  "short_name": "Arbre de Vie",
-  "description": "Suivi des membres de l'Assemblee Arbre de Vie",
+  "name": "Vases d'Honneur",
+  "short_name": "Vases d'Honneur",
+  "description": "Suivi des membres — Assemblee Arbre de Vie",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f766e",

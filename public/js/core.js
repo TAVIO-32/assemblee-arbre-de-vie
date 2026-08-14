@@ -297,13 +297,11 @@ function coquille(ancreActive) {
   const rattachement = [u.tribu_nom, ...(u.departements || []).map((d) => d.nom)]
     .filter(Boolean).join(' · ');
 
-  const logoHtml = etat.logoUrl
-    ? `<img src="${etat.logoUrl}" alt="Logo" class="logo-img">`
-    : '🌳';
+  const logoHtml = `<img src="/icons/icon-192.png" alt="VH" class="logo-img">`;
 
   appEl.innerHTML = `
     <header class="entete">
-      <div class="logo">${logoHtml} <span>Arbre de Vie<small>Assemblée — suivi des fidèles</small></span></div>
+      <div class="logo">${logoHtml} <span>Vases d'Honneur<small>Suivi des fidèles</small></span></div>
       <div class="compte">
         <div><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div>
         <div class="role">${esc(libelleRole(u.role))}${rattachement ? ' · ' + esc(rattachement) : ''}</div>
@@ -333,8 +331,8 @@ function coquille(ancreActive) {
 async function afficherAuth(ongletInitial = 'connexion') {
   appEl.innerHTML = `
     <div class="ecran-auth"><div class="boite-auth">
-      <div class="marque">🌳</div>
-      <div class="titre-app">Assemblée Arbre de Vie</div>
+      <div class="marque"><img src="/icons/icon-192.png" alt="VH" style="width:64px;height:64px;border-radius:14px"></div>
+      <div class="titre-app">Vases d'Honneur</div>
       <p class="sous-titre">Suivi des fidèles, des tribus et des départements</p>
       <div class="onglets">
         <button id="ong-connexion">Connexion</button>
