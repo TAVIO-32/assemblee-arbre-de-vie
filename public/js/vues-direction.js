@@ -848,3 +848,52 @@ async function vueFiches(vue) {
 
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <button class="btn-petit ${modeVue === 'tribu' ? '' : 'btn-secondaire'}" id="btn-par-tribu">Par tribu</button>
+        <button class="btn-petit ${modeVue === 'departement' ? '' : 'btn-secondaire'}" id="btn-par-dept">Par departement</button>
+      </div>
+
+      ${!fiches.length ? '<p class="message-vide">Aucun membre inscrit pour le moment. Partagez le <a href="#/qrcode">QR code</a> pour commencer.</p>' :
+        groupes.map(([nom, membres]) => {
+          const estSans = nom === labelSans || nom === 'Non renseigne';
+          const badgeClasse = estSans ? 'badge-gris' : (modeVue === 'tribu' ? 'badge-teal' : 'badge-or');
+          return `
+          <div class="carte" style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="margin:0;font-size:1rem">
+                <span class="badge ${badgeClasse}">${esc(nom)}</span>
+              </h3>
+              <span style="font-size:.85rem;color:var(--texte-doux)">${membres.length} membre(s)</span>
+            </div>
+            <div class="liste">
+              ${membres.map((f) => `<div class="element" data-id="${f.id}" style="border-bottom:1px solid var(--bordure);padding:8px 0">
+                <div class="infos">
+                  <div class="nom">${esc(f.prenom)} ${esc(f.nom)}</div>
+                  <div class="detail" style="font-size:.85rem">
+                    ${modeVue === 'tribu' && f.departement ? '<span class="badge badge-or" style="font-size:.75rem">' + esc(f.departement) + '</span> ' : ''}
+                    ${modeVue === 'departement' && f.tribu ? '<span class="badge badge-teal" style="font-size:.75rem">' + esc(f.tribu) + '</span> ' : ''}
+                    ${f.telephone ? 'Tel : ' + esc(f.telephone) + ' · ' : ''}
+                    ${f.adresse ? esc(f.adresse) + ' · ' : ''}
+                    ${f.date_naissance ? 'Ne(e) le ' + dateFr(f.date_naissance) : ''}
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn-petit btn-danger btn-suppr">Supprimer</button>
+                </div>
+              </div>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}`;
+
+    document.getElementById('btn-par-tribu').onclick = () => { modeVue = 'tribu'; rendu(); };
+    document.getElementById('btn-par-dept').onclick = () => { modeVue = 'departement'; rendu(); };
+
+    vue.querySelectorAll('.btn-suppr').forEach((b) => {
+      b.onclick = async () => {
+        if (!confirm('Supprimer cette fiche ?')) return;
+        try { await api.del('/fiches/' + b.closest('.element').dataset.id); toast('Fiche supprimee.'); vueFiches(vue); }
+        catch (err) { toast(err.message, true); }
+      };
+    });
+  }
+
+  rendu();
+}
