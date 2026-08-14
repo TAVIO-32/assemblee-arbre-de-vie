@@ -140,7 +140,8 @@ router.get('/global', requireDirection, async (req, res) => {
       (SELECT COUNT(*) FROM departements)                        AS departements,
       (SELECT COUNT(*) FROM evenements)                          AS evenements,
       (SELECT COUNT(*) FROM presences)                           AS pointages,
-      (SELECT COUNT(*) FROM demandes WHERE statut = 'nouveau')   AS demandes_nouvelles
+      (SELECT COUNT(*) FROM demandes WHERE statut = 'nouveau')   AS demandes_nouvelles,
+      (SELECT COUNT(*) FROM fiches_membres)                       AS fiches_qr
   `);
 
   // Répartition par rôle, dans l'ordre hiérarchique.
@@ -189,6 +190,21 @@ router.get('/global', requireDirection, async (req, res) => {
   const plusAssidus = classes.slice(0, 5);
   const dejaCites = new Set(plusAssidus.map((m) => m.id));
   const moinsAssidus = classes.slice().reverse().filter((m) => !dejaCites.has(m.id)).slice(0, 5);
+
+  const fichesParTribu = await db.all(`
+    SELECT tribu AS nom, COUNT(*) AS nb FROM fiches_membres
+    WHERE tribu != '' GROUP BY tribu`);
+  const fichesParDept = await db.all(`
+    SELECT departement AS nom, COUNT(*) AS nb FROM fiches_membres
+    WHERE departement != '' GROUP BY departement`);
+  for (const t of parTribu) {
+    const f = fichesParTribu.find((x) => x.nom === t.nom);
+    t.nb_fiches_qr = f ? f.nb : 0;
+  }
+  for (const d of parDepartement) {
+    const f = fichesParDept.find((x) => x.nom === d.nom);
+    d.nb_fiches_qr = f ? f.nb : 0;
+  }
 
   const comptages = await db.get(`
     SELECT COALESCE(SUM(hommes), 0) AS total_hommes,

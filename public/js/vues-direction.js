@@ -18,6 +18,8 @@ async function vueAccueilDirection(vue) {
     <p class="sous-titre">Vue d'ensemble : ${nombre(e.fideles_actifs)} fidèle(s) actif(s),
       ${nombre(e.tribus)} tribu(s), ${nombre(e.departements)} département(s).</p>
 
+    ${e.fiches_qr ? `<div class="encart-info" style="border-left-color:var(--primaire)">📋 <strong>${e.fiches_qr}</strong>
+      inscription(s) via QR code — <a href="#/fiches">voir les fiches</a></div>` : ''}
     ${e.comptes_en_attente ? `<div class="encart-attention">⏳ <strong>${e.comptes_en_attente}</strong>
       compte(s) en attente de validation — <a href="#/validations">valider maintenant</a></div>` : ''}
     ${e.sans_tribu ? `<div class="encart-info">👥 <strong>${e.sans_tribu}</strong> fidèle(s) actif(s)
@@ -31,6 +33,7 @@ async function vueAccueilDirection(vue) {
         appoint: `${nombre(s.presence.total)} pointage(s)`,
       })}
       ${tuile(nombre(e.evenements), 'Événements enregistrés')}
+      ${tuile(nombre(e.fiches_qr || 0), 'Inscriptions QR', { ton: 'accent' })}
       ${tuile(nombre(e.demandes_nouvelles), 'Nouvelles demandes', { ton: e.demandes_nouvelles ? 'alerte' : '' })}
     </div>
 
@@ -94,7 +97,7 @@ function tableauEquipes(lignes, chemin, libelleMeneur, prefixe) {
       return `<tr>
         <td><a href="#/${chemin}/${l.id}"><strong>${esc(l.nom)}</strong></a></td>
         <td>${meneur}</td>
-        <td class="numerique">${nombre(l.nb_membres)}</td>
+        <td class="numerique">${nombre(l.nb_membres)}${l.nb_fiches_qr ? ` <span style="font-size:.75rem;color:var(--primaire)" title="Inscriptions QR">+${l.nb_fiches_qr} QR</span>` : ''}</td>
         <td>${jauge(l.taux_presence)}</td>
       </tr>`;
     }).join('')}</tbody>
