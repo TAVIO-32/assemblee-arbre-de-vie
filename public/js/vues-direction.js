@@ -15,25 +15,24 @@ async function vueAccueilDirection(vue) {
 
   vue.innerHTML = `
     <h1>Tableau de bord de l'assemblée</h1>
-    <p class="sous-titre">Vue d'ensemble : ${nombre(e.fideles_actifs)} fidèle(s) actif(s),
+    <p class="sous-titre">Vue d'ensemble : ${nombre(e.fideles_actifs)} membre(s),
       ${nombre(e.tribus)} tribu(s), ${nombre(e.departements)} département(s).</p>
 
-    ${e.fiches_qr ? `<div class="encart-info" style="border-left-color:var(--primaire)">📋 <strong>${e.fiches_qr}</strong>
-      inscription(s) via QR code — <a href="#/fiches">voir les fiches</a></div>` : ''}
     ${e.comptes_en_attente ? `<div class="encart-attention">⏳ <strong>${e.comptes_en_attente}</strong>
       compte(s) en attente de validation — <a href="#/validations">valider maintenant</a></div>` : ''}
-    ${e.sans_tribu ? `<div class="encart-info">👥 <strong>${e.sans_tribu}</strong> fidèle(s) actif(s)
+    ${e.sans_tribu ? `<div class="encart-info">👥 <strong>${e.sans_tribu}</strong> membre(s) actif(s)
       ne sont rattachés à aucune tribu — <a href="#/fideles">les rattacher</a></div>` : ''}
     ${blocAlertes(s.alertes_absences)}
 
     <div class="grille-stats">
-      ${tuile(nombre(e.fideles_actifs), 'Fidèles actifs', { ton: 'accent' })}
-      ${tuile(pourcent(s.taux_presence_global), 'Taux de présence global', {
+      ${tuile(nombre(e.fideles_actifs), 'Total membres', { ton: 'accent' })}
+      ${tuile(nombre(e.serviteurs || 0), 'Serviteurs', { ton: 'bien', appoint: 'avec département' })}
+      ${tuile(nombre(e.fideles_simples || 0), 'Fidèles', { appoint: 'sans département' })}
+      ${tuile(pourcent(s.taux_presence_global), 'Taux de présence', {
         ton: s.taux_presence_global !== null && s.taux_presence_global < 60 ? 'alerte' : 'bien',
         appoint: `${nombre(s.presence.total)} pointage(s)`,
       })}
       ${tuile(nombre(e.evenements), 'Événements enregistrés')}
-      ${tuile(nombre(e.fiches_qr || 0), 'Inscriptions QR', { ton: 'accent' })}
       ${tuile(nombre(e.demandes_nouvelles), 'Nouvelles demandes', { ton: e.demandes_nouvelles ? 'alerte' : '' })}
     </div>
 

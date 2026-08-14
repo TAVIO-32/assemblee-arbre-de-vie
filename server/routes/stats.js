@@ -141,7 +141,11 @@ router.get('/global', requireDirection, async (req, res) => {
       (SELECT COUNT(*) FROM evenements)                          AS evenements,
       (SELECT COUNT(*) FROM presences)                           AS pointages,
       (SELECT COUNT(*) FROM demandes WHERE statut = 'nouveau')   AS demandes_nouvelles,
-      (SELECT COUNT(*) FROM fiches_membres)                       AS fiches_qr
+      (SELECT COUNT(*) FROM fiches_membres)                       AS fiches_qr,
+      (SELECT COUNT(DISTINCT m.membre_id) FROM membres_departements m
+        JOIN users u ON u.id = m.membre_id WHERE u.statut = 'actif') AS serviteurs,
+      (SELECT COUNT(*) FROM users u2 WHERE u2.statut = 'actif'
+        AND u2.id NOT IN (SELECT membre_id FROM membres_departements)) AS fideles_simples
   `);
 
   // Répartition par rôle, dans l'ordre hiérarchique.
