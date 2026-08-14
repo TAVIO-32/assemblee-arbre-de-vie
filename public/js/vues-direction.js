@@ -692,3 +692,155 @@ async function vueDepartements(vue) {
     };
   });
 }
+  const EC_L = 1, EC_M = 0;
+  const CAPACITY = [,[17,14],[32,26],[53,42],[78,62],[106,84],[134,106],[154,122],[192,152],[230,180],[271,213]];
+  const EC_BLOCKS = [,[[1,7,19],[1,10,16]],[[1,10,34],[1,16,28]],[[1,15,55],[1,26,44]],[[1,20,80],[2,18,32]],[[1,26,108],[2,24,43]],[[2,18,68],[4,16,27]],[[2,20,78],[4,18,31]],[[2,24,97],[4,20,38]],[[2,30,116],[3,22,36,1,24,37]],[[2,18,68,2,20,70],[4,26,43,1,22,44]]];
+  const ALIGN = [,[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+  const GF256 = new Uint8Array(256), GF_LOG = new Uint8Array(256);
+  { let v = 1; for (let i = 0; i < 255; i++) { GF256[i] = v; GF_LOG[v] = i; v = (v << 1) ^ (v >= 128 ? 0x11d : 0); } }
+  function gfMul(a, b) { return a && b ? GF256[(GF_LOG[a] + GF_LOG[b]) % 255] : 0; }
+  function polyMul(p, q) { const r = new Uint8Array(p.length + q.length - 1); for (let i = 0; i < p.length; i++) for (let j = 0; j < q.length; j++) r[i + j] ^= gfMul(p[i], q[j]); return r; }
+  function ecPoly(n) { let p = new Uint8Array([1]); for (let i = 0; i < n; i++) p = polyMul(p, new Uint8Array([1, GF256[i]])); return p; }
+  function ecEncode(data, ecLen) { const gen = ecPoly(ecLen); const msg = new Uint8Array(data.length + ecLen); msg.set(data); for (let i = 0; i < data.length; i++) { const coef = msg[i]; if (!coef) continue; for (let j = 0; j < gen.length; j++) msg[i + j] ^= gfMul(gen[j], coef); } return msg.slice(data.length); }
+  function encode(text) {
+    const bytes = new TextEncoder().encode(text); const len = bytes.length;
+    let ver = 0, ecLevel = EC_L;
+    for (let v = 1; v <= 10; v++) { if (CAPACITY[v][ecLevel] >= len + 3) { ver = v; break; } }
+    if (!ver) { ecLevel = EC_M; for (let v = 1; v <= 10; v++) { if (CAPACITY[v][ecLevel] >= len + 3) { ver = v; break; } } }
+    if (!ver) throw new Error('Texte trop long');
+    const size = ver * 4 + 17; const totalData = CAPACITY[ver][ecLevel];
+    const dataBits = [];
+    function push(val, bits) { for (let i = bits - 1; i >= 0; i--) dataBits.push((val >> i) & 1); }
+    push(4, 4); push(len, ver <= 9 ? 8 : 16);
+    for (const b of bytes) push(b, 8);
+    push(0, Math.min(4, totalData * 8 - dataBits.length));
+    while (dataBits.length % 8) dataBits.push(0);
+    while (dataBits.length < totalData * 8) { push(0xec, 8); if (dataBits.length < totalData * 8) push(0x11, 8); }
+    const dataBytes = new Uint8Array(totalData);
+    for (let i = 0; i < totalData; i++) { let v2 = 0; for (let b = 0; b < 8; b++) v2 = (v2 << 1) | dataBits[i * 8 + b]; dataBytes[i] = v2; }
+    const blockInfo = EC_BLOCKS[ver][ecLevel]; const blocks = [], ecBlocks = []; let offset = 0;
+    for (let i = 0; i < blockInfo.length; i += 3) { const count = blockInfo[i], ecCw = blockInfo[i + 1], dataCw = blockInfo[i + 2]; for (let j = 0; j < count; j++) { const block = dataBytes.slice(offset, offset + dataCw); blocks.push(block); ecBlocks.push(ecEncode(block, ecCw)); offset += dataCw; } }
+    const interleaved = []; const maxData = Math.max(...blocks.map(b => b.length));
+    for (let i = 0; i < maxData; i++) for (const b of blocks) if (i < b.length) interleaved.push(b[i]);
+    const maxEc = Math.max(...ecBlocks.map(b => b.length));
+    for (let i = 0; i < maxEc; i++) for (const b of ecBlocks) if (i < b.length) interleaved.push(b[i]);
+    const grid = Array.from({ length: size }, () => new Uint8Array(size));
+    const reserved = Array.from({ length: size }, () => new Uint8Array(size));
+    function setMod(r, c, v) { grid[r][c] = v ? 1 : 0; reserved[r][c] = 1; }
+    function finderPattern(row, col) { for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) { const r = row + dr, c = col + dc; if (r < 0 || r >= size || c < 0 || c >= size) continue; const inOuter = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6; const inInner = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4; const onBorder = dr === 0 || dr === 6 || dc === 0 || dc === 6; setMod(r, c, inInner || (inOuter && onBorder) ? 1 : 0); } }
+    finderPattern(0, 0); finderPattern(0, size - 7); finderPattern(size - 7, 0);
+    for (let i = 0; i < size; i++) { if (!reserved[6][i]) setMod(6, i, i % 2 === 0); if (!reserved[i][6]) setMod(i, 6, i % 2 === 0); }
+    setMod(size - 8, 8, 1);
+    const alignPos = ALIGN[ver];
+    if (alignPos.length > 1) { for (const r of alignPos) for (const c of alignPos) { if (reserved[r][c]) continue; for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { setMod(r + dr, c + dc, Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0) ? 1 : 0); } } }
+    for (let i = 0; i < 8; i++) { reserved[8][i] = 1; reserved[8][size - 1 - i] = 1; reserved[i][8] = 1; reserved[size - 1 - i][8] = 1; }
+    reserved[8][8] = 1;
+    let bitIdx = 0;
+    for (let col = size - 1; col >= 1; col -= 2) { if (col === 6) col = 5; for (let cnt = 0; cnt < size; cnt++) { const row = ((Math.floor((size - 1 - col) / 2)) % 2 === 0) ? size - 1 - cnt : cnt; for (let dx = 0; dx <= 1; dx++) { const c = col - dx; if (reserved[row][c]) continue; if (bitIdx < interleaved.length * 8) { grid[row][c] = (interleaved[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1; bitIdx++; } } } }
+    let bestMask = 0, bestScore = Infinity;
+    for (let mask = 0; mask < 8; mask++) { const test = grid.map(r => r.slice()); for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) { if (reserved[r][c]) continue; let flip = false; switch (mask) { case 0: flip = (r + c) % 2 === 0; break; case 1: flip = r % 2 === 0; break; case 2: flip = c % 3 === 0; break; case 3: flip = (r + c) % 3 === 0; break; case 4: flip = (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0; break; case 5: flip = (r * c) % 2 + (r * c) % 3 === 0; break; case 6: flip = ((r * c) % 2 + (r * c) % 3) % 2 === 0; break; case 7: flip = ((r + c) % 2 + (r * c) % 3) % 2 === 0; break; } if (flip) test[r][c] ^= 1; } let score = 0; for (let r = 0; r < size; r++) { let run = 1; for (let c = 1; c < size; c++) { if (test[r][c] === test[r][c - 1]) { run++; if (run === 5) score += 3; else if (run > 5) score++; } else run = 1; } } for (let c = 0; c < size; c++) { let run = 1; for (let r = 1; r < size; r++) { if (test[r][c] === test[r - 1][c]) { run++; if (run === 5) score += 3; else if (run > 5) score++; } else run = 1; } } if (score < bestScore) { bestScore = score; bestMask = mask; } }
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) { if (reserved[r][c]) continue; let flip = false; switch (bestMask) { case 0: flip = (r + c) % 2 === 0; break; case 1: flip = r % 2 === 0; break; case 2: flip = c % 3 === 0; break; case 3: flip = (r + c) % 3 === 0; break; case 4: flip = (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0; break; case 5: flip = (r * c) % 2 + (r * c) % 3 === 0; break; case 6: flip = ((r * c) % 2 + (r * c) % 3) % 2 === 0; break; case 7: flip = ((r + c) % 2 + (r * c) % 3) % 2 === 0; break; } if (flip) grid[r][c] ^= 1; }
+    const FORMAT_BITS = [0x77c4,0x72f3,0x7daa,0x789d,0x662f,0x6318,0x6c41,0x6976,0x5412,0x5125,0x5e7c,0x5b4b,0x45f9,0x40ce,0x4f97,0x4aa0,0x355f,0x3068,0x3f31,0x3a06,0x24b4,0x2183,0x2eda,0x2bed,0x1689,0x13be,0x1ce7,0x19d0,0x0762,0x0255,0x0d0c,0x083b];
+    const fmt = FORMAT_BITS[ecLevel * 8 + bestMask]; const fmtBits = []; for (let i = 14; i >= 0; i--) fmtBits.push((fmt >> i) & 1);
+    const p1 = [[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],[8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0]];
+    const p2 = [[8,size-1],[8,size-2],[8,size-3],[8,size-4],[8,size-5],[8,size-6],[8,size-7],[8,size-8],[size-7,8],[size-6,8],[size-5,8],[size-4,8],[size-3,8],[size-2,8],[size-1,8]];
+    for (let i = 0; i < 15; i++) { grid[p1[i][0]][p1[i][1]] = fmtBits[i]; grid[p2[i][0]][p2[i][1]] = fmtBits[i]; }
+    return { grid, size };
+  }
+  function toSvg(text, scale) {
+    const { grid, size } = encode(text); const m = 4, t = size + m * 2;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${t} ${t}" width="${t * (scale || 8)}" height="${t * (scale || 8)}"><rect width="${t}" height="${t}" fill="#fff"/>`;
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (grid[r][c]) svg += `<rect x="${c + m}" y="${r + m}" width="1" height="1" fill="#000"/>`;
+    return svg + '</svg>';
+  }
+  return { toSvg };
+})();
+
+async function vueQRCode(vue) {
+  const lienFiche = location.origin + '/fiche.html';
+  let svgContent;
+  try { svgContent = QR.toSvg(lienFiche, 6); }
+  catch { svgContent = '<p style="color:var(--rouge)">Impossible de generer le QR code.</p>'; }
+
+  vue.innerHTML = `
+    <h1>QR Code d'inscription</h1>
+    <p class="sous-titre">Partagez ce QR code dans votre groupe WhatsApp.
+      Chaque personne qui le scanne pourra remplir sa fiche membre.</p>
+    <div class="carte" style="text-align:center">
+      <div id="qr-container" style="display:inline-block;background:#fff;padding:16px;border-radius:12px;border:2px solid var(--bordure)">
+        ${svgContent}
+      </div>
+      <p style="margin-top:12px;font-size:.85rem;color:var(--texte-doux)">
+        Lien du formulaire : <a href="${esc(lienFiche)}" target="_blank" style="color:var(--primaire);word-break:break-all">${esc(lienFiche)}</a>
+      </p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+        <button class="btn-petit" id="btn-telecharger">Telecharger le QR code</button>
+        <button class="btn-petit btn-secondaire" id="btn-copier-lien">Copier le lien</button>
+      </div>
+    </div>
+    <div class="encart-info" style="margin-top:16px">
+      <strong>Comment partager :</strong><br>
+      1. Telechargez l'image du QR code ci-dessus<br>
+      2. Envoyez-la dans votre groupe WhatsApp avec un message du type :<br>
+      <em>"Scannez ce QR code pour remplir votre fiche membre de l'Assemblee Arbre de Vie"</em><br>
+      3. Les fiches remplies apparaitront dans l'onglet <a href="#/fiches">Fiches</a>
+    </div>`;
+
+  document.getElementById('btn-telecharger').onclick = () => {
+    const svg = document.querySelector('#qr-container svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width; canvas.height = img.height;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      const a = document.createElement('a');
+      a.download = 'qrcode-arbre-de-vie.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+  document.getElementById('btn-copier-lien').onclick = async () => {
+    try { await navigator.clipboard.writeText(lienFiche); toast('Lien copie dans le presse-papiers.'); }
+    catch { toast('Impossible de copier le lien.', true); }
+  };
+}
+
+/* ============ Fiches membres recues ============ */
+
+async function vueFiches(vue) {
+  const r = await api.get('/fiches');
+  const fiches = r.fiches;
+
+  const grouperPar = (champ) => {
+    const groupes = {};
+    fiches.forEach((f) => {
+      const v = f[champ] || 'Non renseigne';
+      if (!groupes[v]) groupes[v] = [];
+      groupes[v].push(f);
+    });
+    const sans = ['Sans tribu', 'Sans departement', 'Non renseigne'];
+    return Object.entries(groupes).sort((a, b) => {
+      const aS = sans.includes(a[0]) ? 1 : 0;
+      const bS = sans.includes(b[0]) ? 1 : 0;
+      if (aS !== bS) return aS - bS;
+      return a[0].localeCompare(b[0]);
+    });
+  };
+
+  let modeVue = 'tribu';
+
+  function rendu() {
+    const groupes = grouperPar(modeVue === 'tribu' ? 'tribu' : 'departement');
+    const labelSans = modeVue === 'tribu' ? 'Sans tribu' : 'Sans departement';
+
+    vue.innerHTML = `
+      <h1>Membres inscrits</h1>
+      <p class="sous-titre">${fiches.length} membre(s) inscrit(s) via le QR code.</p>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn-petit ${modeVue === 'tribu' ? '' : 'btn-secondaire'}" id="btn-par-tribu">Par tribu</button>

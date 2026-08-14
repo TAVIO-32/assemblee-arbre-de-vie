@@ -160,6 +160,17 @@ function tables(idAuto, horodatage, typeBinaire) {
       donnees  ${typeBinaire} NOT NULL,
       created_at ${horodatage}
     )`,
+    fiches_membres: `CREATE TABLE IF NOT EXISTS fiches_membres (
+      id             ${idAuto},
+      nom            TEXT NOT NULL,
+      prenom         TEXT NOT NULL,
+      tribu          TEXT DEFAULT '',
+      departement    TEXT DEFAULT '',
+      adresse        TEXT DEFAULT '',
+      date_naissance TEXT DEFAULT '',
+      telephone      TEXT DEFAULT '',
+      created_at     ${horodatage}
+    )`,
   };
 }
 
@@ -167,7 +178,7 @@ function tables(idAuto, horodatage, typeBinaire) {
 const ORDRE_TABLES = [
   'tribus', 'departements', 'users', 'membres_departements',
   'evenements', 'presences', 'cotisations', 'demandes', 'annonces', 'comptages',
-  'bilans_mensuels', 'parametres', 'fichiers',
+  'bilans_mensuels', 'parametres', 'fichiers', 'fiches_membres',
 ];
 
 const INDEX = [

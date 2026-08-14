@@ -31,6 +31,7 @@ app.use('/api/demandes', require('./routes/demandes'));
 app.use('/api/annonces', require('./routes/annonces'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/fiches', require('./routes/fiches'));
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 app.use(express.static(PUBLIC_DIR));

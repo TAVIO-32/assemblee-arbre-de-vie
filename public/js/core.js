@@ -259,6 +259,8 @@ function elementsNav(u) {
       ['#/cotisations', 'Cotisations'],
       ['#/demandes', 'Demandes'],
       ['#/annonces', 'Annonces'],
+      ['#/qrcode', 'QR Code'],
+      ['#/fiches', 'Fiches'],
     );
   } else if (estEncadrant(u)) {
     items.push(['#/accueil', 'Mon tableau de bord']);

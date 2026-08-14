@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <title>Arbre de Vie — Fiche membre</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌳</text></svg>">
+  <style>
+    :root {
+      --primaire: #0f766e;
+      --primaire-fonce: #0d5d57;
+      --vert: #16a34a;
+      --rouge: #dc2626;
+      --fond: #f0fdfa;
+      --texte: #1e293b;
+      --texte-doux: #64748b;
+      --bordure: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, var(--primaire) 0%, #115e59 100%);
+      color: var(--texte);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .boite {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 22px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.15);
+    }
+    .marque { text-align: center; font-size: 2.5rem; margin-bottom: 4px; }
+    .titre { text-align: center; font-size: 1.4rem; font-weight: 800; color: var(--primaire); margin: 0 0 4px; }
+    .sous-titre { text-align: center; color: var(--texte-doux); font-size: .9rem; margin: 0 0 20px; }
+    label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 4px; color: var(--texte); }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--bordure);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--texte);
+    }
+    input:focus, select:focus { outline: 2px solid var(--primaire); outline-offset: 1px; border-color: var(--primaire); }
+    .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    @media (max-width: 480px) { .ligne { grid-template-columns: 1fr; } }
+    .btn {
+      display: block; width: 100%; margin-top: 20px; padding: 14px;
+      border: none; border-radius: 8px; background: var(--primaire);
+      color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer;
+      font-family: inherit;
+    }
+    .btn:hover { background: var(--primaire-fonce); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .succes { text-align: center; padding: 40px 20px; }
+    .succes .icone { font-size: 3rem; margin-bottom: 12px; }
+    .succes h2 { color: var(--vert); margin: 0 0 8px; }
+    .succes p { color: var(--texte-doux); }
+    .erreur-msg { color: var(--rouge); font-size: .85rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="boite" id="contenu">
+    <div class="marque">🌳</div>
+    <div class="titre">Assemblee Arbre de Vie</div>
+    <p class="sous-titre">Remplissez votre fiche pour rejoindre l'assemblee</p>
+    <form id="form-fiche">
+      <div class="ligne">
+        <div>
+          <label>Prenom *</label>
+          <input name="prenom" required placeholder="Votre prenom">
+        </div>
+        <div>
+          <label>Nom *</label>
+          <input name="nom" required placeholder="Votre nom de famille">
+        </div>
+      </div>
+      <label>Telephone</label>
+      <input name="telephone" inputmode="tel" placeholder="+225 07 00 00 00 00">
+      <label>Tribu</label>
+      <select name="tribu">
+        <option value="">-- Choisir votre tribu --</option>
+        <option value="SIMGAD">SIMGAD</option>
+        <option value="JOZABU">JOZABU</option>
+        <option value="JUNEPH">JUNEPH</option>
+        <option value="RUDAN">RUDAN</option>
+        <option value="LEVASE">LEVASE</option>
+        <option value="BENISS">BENISS</option>
+        <option value="Sans tribu">Sans tribu</option>
+      </select>
+      <label>Departement</label>
+      <select name="departement">
+        <option value="">-- Choisir votre departement --</option>
+        <option value="MRES">MRES</option>
+        <option value="COM">COM</option>
+        <option value="ADN">ADN</option>
+        <option value="Evangelisation">Evangelisation</option>
+        <option value="Groupe Louange">Groupe Louange</option>
+        <option value="Portier">Portier</option>
+        <option value="Protocole">Protocole</option>
+        <option value="Medecine d'honneur">Medecine d'honneur</option>
+        <option value="Sainte Scene">Sainte Scene</option>
+        <option value="Intercession">Intercession</option>
+        <option value="Social">Social</option>
+        <option value="Deco">Deco</option>
+        <option value="Logistique">Logistique</option>
+        <option value="Administration">Administration</option>
+        <option value="Gestion de culte">Gestion de culte</option>
+        <option value="Ecodim">Ecodim</option>
+        <option value="Wedding Planner">Wedding Planner</option>
+        <option value="Sans departement">Sans departement</option>
+      </select>
+      <label>Adresse</label>
+      <input name="adresse" placeholder="Votre quartier ou adresse">
+      <label>Date de naissance</label>
+      <input type="date" name="date_naissance">
+      <div id="msg-erreur"></div>
+      <button class="btn" type="submit">Envoyer ma fiche</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('form-fiche').onsubmit = async function(e) {
+      e.preventDefault();
+      var btn = e.target.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Envoi en cours...';
+      document.getElementById('msg-erreur').textContent = '';
+      try {
+        var donnees = Object.fromEntries(new FormData(e.target));
+        var res = await fetch('/api/fiches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(donnees)
+        });
+        var json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Une erreur est survenue.');
+        document.getElementById('contenu').innerHTML =
+          '<div class="succes">' +
+            '<div class="icone">&#10004;&#65039;</div>' +
+            '<h2>Merci !</h2>' +
+            '<p>' + json.message + '</p>' +
+            '<p style="margin-top:20px;font-size:.85rem;color:#64748b;">Vous pouvez fermer cette page.</p>' +
+          '</div>';
+      } catch (err) {
+        document.getElementById('msg-erreur').innerHTML =
+          '<p class="erreur-msg">' + err.message + '</p>';
+        btn.disabled = false;
+        btn.textContent = 'Envoyer ma fiche';
+      }
+    };
+  </script>
+</body>
+</html>
