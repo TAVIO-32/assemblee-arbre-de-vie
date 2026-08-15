@@ -788,7 +788,7 @@ async function vueQRCode(vue) {
       <strong>Comment partager :</strong><br>
       1. Telechargez l'image du QR code ci-dessus<br>
       2. Envoyez-la dans votre groupe WhatsApp avec un message du type :<br>
-      <em>"Scannez ce QR code pour remplir votre fiche membre — Vases d'Honneur"</em><br>
+      <em>"Scannez ce QR code pour remplir votre fiche membre — Assemblee Arbre de Vie"</em><br>
       3. Les fiches remplies apparaitront dans l'onglet <a href="#/fiches">Fiches</a>
     </div>`;
 

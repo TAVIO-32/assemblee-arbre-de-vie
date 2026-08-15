@@ -302,7 +302,7 @@ function coquille(ancreActive) {
 
   appEl.innerHTML = `
     <header class="entete">
-      <div class="logo">${logoHtml} <span>Vases d'Honneur<small>Suivi des fidèles</small></span></div>
+      <div class="logo">${logoHtml} <span>Assemblee Arbre de Vie<small>Suivi des fidèles</small></span></div>
       <div class="compte">
         <div><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div>
         <div class="role">${esc(libelleRole(u.role))}${rattachement ? ' · ' + esc(rattachement) : ''}</div>
@@ -333,7 +333,7 @@ async function afficherAuth(ongletInitial = 'connexion') {
   appEl.innerHTML = `
     <div class="ecran-auth"><div class="boite-auth">
       <div class="marque"><img src="/icons/icon-192.png" alt="VH" style="width:64px;height:64px;border-radius:14px"></div>
-      <div class="titre-app">Vases d'Honneur</div>
+      <div class="titre-app">Assemblee Arbre de Vie</div>
       <p class="sous-titre">Suivi des fidèles, des tribus et des départements</p>
       <div class="onglets">
         <button id="ong-connexion">Connexion</button>
