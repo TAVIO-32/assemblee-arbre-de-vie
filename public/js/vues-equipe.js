@@ -443,6 +443,183 @@ async function vueFichePresence(vue, evenementId) {
     notes: rc.comptage ? rc.comptage.notes || '' : '',
   };
 
+  const estCulte = ev.type === 'culte';
+
+  if (estCulte) {
+    // === MODE CULTE : comptage du peuple + pointage individuel des serviteurs ===
+    const encadrement = new Set(etat.ref.roles_encadrement || []);
+    const serviteurs = r.feuille.filter((l) => encadrement.has(l.role));
+    const saisieServ = new Map(serviteurs.map((l) => [l.membre_id, l.statut === 'present']));
+    let rechercheServ = '';
+
+    function totalGeneral() {
+      const peuple = comptage.hommes + comptage.femmes + comptage.enfants;
+      const serv = [...saisieServ.values()].filter(Boolean).length;
+      return { peuple, serv, total: peuple + serv };
+    }
+
+    vue.innerHTML = `
+      <a href="#/presences" class="btn btn-petit btn-neutre retour">← Retour aux fiches</a>
+      <div class="fiche-entete">
+        <div class="nom" style="font-weight:800;font-size:1.1rem">${esc(ev.titre)}</div>
+        <div class="detail" style="font-size:.84rem;color:var(--texte-doux)">
+          ${esc(etat.ref.types_evenement[ev.type] || ev.type)} · ${dateFr(ev.date)} ·
+          ${ev.portee === 'tribu' ? 'Tribu ' + esc(ev.tribu_nom || '')
+            : ev.portee === 'departement' ? esc(ev.departement_nom || '')
+            : "Toute l'assemblée"}
+        </div>
+      </div>
+
+      <div class="culte-total" id="culte-total"></div>
+
+      <div class="culte-section">Comptage du peuple</div>
+      <div class="comptage-zone">
+        <div class="comptage-categorie">
+          <div class="cat-icone hommes">👨</div>
+          <div class="cat-infos"><div class="cat-label">Hommes</div>
+            <div class="cat-valeur" id="val-hommes">${comptage.hommes}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="hommes" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="hommes" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="comptage-categorie">
+          <div class="cat-icone femmes">👩</div>
+          <div class="cat-infos"><div class="cat-label">Femmes</div>
+            <div class="cat-valeur" id="val-femmes">${comptage.femmes}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="femmes" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="femmes" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="comptage-categorie">
+          <div class="cat-icone enfants">👦</div>
+          <div class="cat-infos"><div class="cat-label">Enfants</div>
+            <div class="cat-valeur" id="val-enfants">${comptage.enfants}</div></div>
+          <div class="comptage-boutons">
+            <button class="btn-moins" data-cat="enfants" data-dir="-1">−</button>
+            <button class="btn-plus" data-cat="enfants" data-dir="1">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="culte-section">
+        Pointage des serviteurs
+        <span id="serv-compteur" style="float:right;font-weight:600;font-size:.85rem"></span>
+      </div>
+      ${serviteurs.length > 6 ? `<div class="carte" style="padding:10px 12px;margin-bottom:10px">
+        <input id="recherche-serv" placeholder="🔍 Rechercher un serviteur…" style="margin:0">
+      </div>` : ''}
+      <div id="liste-serviteurs"></div>
+
+      <div class="barre-enregistrement" style="margin-top:18px">
+        <span class="resume" id="resume-culte"></span>
+        <button class="btn-vert" id="btn-enregistrer-culte">💾 Enregistrer tout</button>
+      </div>`;
+
+    function majTotalCulte() {
+      const { peuple, serv, total } = totalGeneral();
+      const el = document.getElementById('culte-total');
+      el.innerHTML = `
+        <div class="total-chiffre">${total}</div>
+        <div class="total-detail">Peuple : ${peuple} · Serviteurs : ${serv}</div>`;
+      document.getElementById('val-hommes').textContent = comptage.hommes;
+      document.getElementById('val-femmes').textContent = comptage.femmes;
+      document.getElementById('val-enfants').textContent = comptage.enfants;
+      const nbServ = [...saisieServ.values()].filter(Boolean).length;
+      document.getElementById('serv-compteur').textContent =
+        `${nbServ} / ${serviteurs.length} présent(s)`;
+      const resume = document.getElementById('resume-culte');
+      if (resume) resume.textContent = total
+        ? `${total} personne(s) au total`
+        : 'Aucune saisie.';
+    }
+
+    // +/- comptage peuple
+    vue.querySelectorAll('.comptage-boutons button').forEach((b) => {
+      b.onclick = () => {
+        comptage[b.dataset.cat] = Math.max(0, comptage[b.dataset.cat] + Number(b.dataset.dir));
+        majTotalCulte();
+      };
+    });
+
+    function dessinerServiteurs() {
+      const motif = rechercheServ.trim().toLowerCase();
+      const zone = document.getElementById('liste-serviteurs');
+      const visibles = serviteurs.filter((l) =>
+        !motif || `${l.prenom} ${l.nom}`.toLowerCase().includes(motif));
+
+      if (!visibles.length) {
+        zone.innerHTML = `<p class="message-vide">${serviteurs.length
+          ? 'Aucun serviteur ne correspond.' : 'Aucun serviteur dans le périmètre.'}</p>`;
+        return;
+      }
+
+      zone.innerHTML = visibles.map((l) => {
+        const present = saisieServ.get(l.membre_id);
+        const fonction = libelleRole(l.role)
+          + (l.role === 'patriarche' && l.tribu_nom ? ' — ' + l.tribu_nom : '');
+        return `<div class="serviteur-element${present ? ' est-present' : ''}" data-id="${l.membre_id}">
+          ${avatarHtml(l.photo, l.prenom, l.nom, 44)}
+          <div class="serviteur-infos">
+            <div class="serviteur-nom">${esc(l.prenom)} ${esc(l.nom)}</div>
+            <span class="serviteur-fonction">${esc(fonction)}</span>
+          </div>
+          <button type="button" class="btn-presence-toggle${present ? ' actif' : ''}"
+            title="${present ? 'Retirer' : 'Marquer présent'}">${present ? '✓' : ''}</button>
+        </div>`;
+      }).join('');
+
+      zone.querySelectorAll('.serviteur-element').forEach((el) => {
+        const membreId = Number(el.dataset.id);
+        const btn = el.querySelector('.btn-presence-toggle');
+        const clicPresence = () => {
+          const nouveau = !saisieServ.get(membreId);
+          saisieServ.set(membreId, nouveau);
+          btn.className = 'btn-presence-toggle' + (nouveau ? ' actif' : '');
+          btn.textContent = nouveau ? '✓' : '';
+          btn.title = nouveau ? 'Retirer' : 'Marquer présent';
+          el.className = 'serviteur-element' + (nouveau ? ' est-present' : '');
+          majTotalCulte();
+        };
+        btn.onclick = (e) => { e.stopPropagation(); clicPresence(); };
+        el.onclick = () => clicPresence();
+      });
+    }
+
+    const champRech = document.getElementById('recherche-serv');
+    if (champRech) champRech.oninput = (e) => { rechercheServ = e.target.value; dessinerServiteurs(); };
+
+    document.getElementById('btn-enregistrer-culte').onclick = async () => {
+      const btn = document.getElementById('btn-enregistrer-culte');
+      btn.disabled = true;
+      try {
+        const presences = [...saisieServ.entries()]
+          .filter(([, present]) => present)
+          .map(([membre_id]) => ({ membre_id, statut: 'present' }));
+
+        await Promise.all([
+          api.put(`/evenements/${evenementId}/comptage`, comptage),
+          presences.length
+            ? api.put(`/evenements/${evenementId}/presences`, { presences })
+            : Promise.resolve(),
+        ]);
+        const { total } = totalGeneral();
+        toast(`Culte enregistré : ${total} personne(s) au total.`);
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    dessinerServiteurs();
+    majTotalCulte();
+    return;
+  }
+
+  // === MODE STANDARD (non-culte) : deux onglets ===
+
   // Sur une fiche d'assemblée, on regroupe visuellement par tribu.
   const grouper = ev.portee === 'assemblee' &&
     new Set(r.feuille.map((l) => l.tribu_nom || '')).size > 1;

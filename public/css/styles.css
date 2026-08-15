@@ -544,3 +544,52 @@ img.avatar { border: 2px solid var(--primaire-bord); }
 .filtres > div { flex: 1 1 160px; }
 .filtres label { margin-top: 0; }
 .pile { display: flex; flex-direction: column; gap: 2px; }
+
+/* ---------- Pointage culte (mode combiné) ---------- */
+.culte-total {
+  background: linear-gradient(135deg, var(--primaire), #115e59);
+  border-radius: var(--rayon); padding: 20px 16px; text-align: center;
+  color: #fff; margin-bottom: 18px;
+}
+.culte-total .total-chiffre {
+  font-size: 2.8rem; font-weight: 800; line-height: 1.1;
+}
+.culte-total .total-detail {
+  font-size: .88rem; opacity: .85; margin-top: 4px;
+}
+.culte-section {
+  font-weight: 800; font-size: .92rem; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--primaire); margin: 18px 0 10px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--primaire-pale);
+}
+.serviteur-element {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--carte); border-radius: var(--rayon);
+  border: 1px solid var(--bordure); margin-bottom: 8px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.serviteur-element.est-present {
+  border-left: 4px solid var(--vert);
+  background: linear-gradient(90deg, #f0fdf4, var(--carte));
+}
+.serviteur-infos { flex: 1; min-width: 0; }
+.serviteur-nom { font-weight: 700; font-size: .95rem; }
+.serviteur-fonction {
+  font-size: .8rem; color: var(--texte-doux);
+  display: inline-block; margin-top: 2px;
+}
+.btn-presence-toggle {
+  min-width: 44px; min-height: 44px; border-radius: 50%;
+  border: 2px solid var(--bordure); background: var(--carte);
+  font-size: 1.2rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.btn-presence-toggle:hover { border-color: var(--vert); }
+.btn-presence-toggle.actif {
+  background: var(--vert); border-color: var(--vert); color: #fff;
+}
+.serviteurs-compteur {
+  text-align: center; font-size: .88rem; color: var(--texte-doux);
+  margin-top: 6px; font-weight: 600;
+}

@@ -250,7 +250,7 @@ router.get('/:id/presences', requireEncadrement, async (req, res) => {
 
   const feuille = await db.all(`
     SELECT u.id AS membre_id, u.nom, u.prenom, u.telephone, u.whatsapp,
-           u.tribu_id, t.nom AS tribu_nom, p.statut, p.commentaire
+           u.photo, u.role, u.tribu_id, t.nom AS tribu_nom, p.statut, p.commentaire
     FROM users u
     LEFT JOIN tribus t ON t.id = u.tribu_id
     LEFT JOIN presences p ON p.membre_id = u.id AND p.evenement_id = ?
