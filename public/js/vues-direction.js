@@ -1000,6 +1000,12 @@ async function vueVersets(vue) {
       historique.unshift({ ref: refAff, texte });
       if (historique.length > 20) historique.pop();
       afficherHistorique();
+
+      fetch('/api/bible/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: refAff, texte })
+      }).catch(() => {});
     } catch {
       zone.innerHTML = `<div class="verset-affiche">
         <div class="ref">${esc(ref)}</div>

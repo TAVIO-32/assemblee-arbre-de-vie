@@ -109,4 +109,19 @@ router.get('/:livre/:chapitre/:verset?', async (req, res) => {
   }
 });
 
+let versetEnCours = { reference: '', texte: '', timestamp: 0 };
+
+/** POST /api/bible/live — le telephone-micro envoie le verset detecte. */
+router.post('/live', (req, res) => {
+  const { reference, texte } = req.body || {};
+  if (!reference) return res.status(400).json({ error: 'Reference requise.' });
+  versetEnCours = { reference, texte: texte || '', timestamp: Date.now() };
+  res.json({ ok: true });
+});
+
+/** GET /api/bible/live — l'ecran d'affichage recupere le verset en cours. */
+router.get('/live', (req, res) => {
+  res.json(versetEnCours);
+});
+
 module.exports = router;
