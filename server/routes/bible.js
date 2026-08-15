@@ -64,8 +64,7 @@ function trouverLivre(texte) {
   return null;
 }
 
-/** GET /api/bible/:livre/:chapitre/:verset? */
-router.get('/:livre/:chapitre/:verset?', async (req, res) => {
+async function handleVerset(req, res) {
   const livreNum = trouverLivre(req.params.livre);
   if (!livreNum) return res.status(404).json({ error: 'Livre non trouve.' });
 
@@ -107,7 +106,7 @@ router.get('/:livre/:chapitre/:verset?', async (req, res) => {
       erreur: 'Impossible de charger le texte du verset.'
     });
   }
-});
+}
 
 let versetEnCours = { reference: '', texte: '', timestamp: 0 };
 
@@ -123,5 +122,8 @@ router.post('/live', (req, res) => {
 router.get('/live', (req, res) => {
   res.json(versetEnCours);
 });
+
+router.get('/:livre/:chapitre/:verset', handleVerset);
+router.get('/:livre/:chapitre', handleVerset);
 
 module.exports = router;
