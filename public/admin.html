@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZAURA — Administration</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0d1a;--surface:#1a1730;--surface2:#241f3a;--border:#2e2852;
+  --text:#e8e4f0;--muted:#9b8fc4;--accent:#a78bfa;--accent2:#c084fc;
+  --green:#34d399;--red:#f87171;--amber:#fbbf24;
+  --gradient:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+  --radius:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+input,select,button{font:inherit;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);padding:10px 14px}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+button{cursor:pointer;background:var(--gradient);border:none;color:#fff;font-weight:700;padding:10px 20px;transition:opacity .2s}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 12px;font-size:.85rem;border-radius:8px}
+.btn-danger{background:#dc2626}
+.btn-green{background:#059669}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{background:var(--surface2)}
+
+/* Layout */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:400px;width:100%}
+.login-box h1{font-size:1.6rem;margin-bottom:4px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.login-box p{color:var(--muted);margin-bottom:24px;font-size:.9rem}
+.login-box label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 4px}
+.login-box input{width:100%;margin-bottom:4px}
+.login-box button{width:100%;margin-top:16px}
+.login-box .error{color:var(--red);font-size:.85rem;margin-top:8px}
+
+.shell{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar .logo{padding:0 20px 20px;font-size:1.2rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar nav a{display:block;padding:10px 20px;color:var(--muted);font-size:.9rem;transition:all .15s}
+.sidebar nav a:hover,.sidebar nav a.active{background:var(--surface2);color:var(--text);text-decoration:none}
+.sidebar nav a.active{border-left:3px solid var(--accent);padding-left:17px}
+.sidebar .spacer{flex:1}
+.sidebar .admin-info{padding:16px 20px;border-top:1px solid var(--border);font-size:.8rem;color:var(--muted)}
+.main{flex:1;padding:28px 32px;overflow-x:auto}
+.main h1{font-size:1.5rem;margin-bottom:4px}
+.main .subtitle{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+
+/* Cards & Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat .val{font-size:1.8rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat .label{font-size:.8rem;color:var(--muted);margin-top:2px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{font-size:1.1rem;margin-bottom:12px}
+
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{text-align:left;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:hover td{background:var(--surface2)}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:700}
+.badge-green{background:rgba(52,211,153,.15);color:var(--green)}
+.badge-amber{background:rgba(251,191,36,.15);color:var(--amber)}
+.badge-red{background:rgba(248,113,113,.15);color:var(--red)}
+.badge-purple{background:rgba(167,139,250,.15);color:var(--accent)}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:var(--radius);font-size:.9rem;z-index:999;animation:slideIn .3s ease}
+.toast.error{border-color:var(--red);color:var(--red)}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.detail-header h1{margin:0}
+.actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+.field select,.field input{width:100%}
+.fields-row{display:flex;gap:12px;flex-wrap:wrap}
+.fields-row .field{flex:1;min-width:150px}
+
+@media(max-width:700px){
+  .sidebar{display:none}
+  .main{padding:16px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+const app = document.getElementById('app');
+let admin = null;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function dateFr(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; } }
+function nombre(n) { return (n ?? 0).toLocaleString('fr-FR'); }
+
+function showToast(msg, err) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (err ? ' error' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function apiFetch(url, opts) {
+  const r = await fetch('/api/admin' + url, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    ...opts,
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Erreur serveur');
+  return data;
+}
+
+function badgeStatut(s) {
+  if (s === 'actif') return '<span class="badge badge-green">Actif</span>';
+  if (s === 'essai') return '<span class="badge badge-amber">Essai</span>';
+  if (s === 'expire') return '<span class="badge badge-red">Expire</span>';
+  if (s === 'suspendu') return '<span class="badge badge-red">Suspendu</span>';
+  if (s === 'en_attente') return '<span class="badge badge-amber">En attente</span>';
+  return '<span class="badge badge-purple">' + esc(s) + '</span>';
+}
+
+/* ======== LOGIN ======== */
+function renderLogin(errMsg) {
+  app.innerHTML = `
+    <div class="login-wrap"><div class="login-box">
+      <h1>ZAURA Admin</h1>
+      <p>Panel d'administration de la plateforme</p>
+      <form id="login-form">
+        <label>Email</label>
+        <input type="email" id="l-email" required placeholder="admin@zaura.app">
+        <label>Mot de passe</label>
+        <input type="password" id="l-pass" required placeholder="••••••">
+        <button type="submit">Se connecter</button>
+        ${errMsg ? '<div class="error">' + esc(errMsg) + '</div>' : ''}
+      </form>
+    </div></div>`;
+  document.getElementById('login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const r = await apiFetch('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: document.getElementById('l-email').value, password: document.getElementById('l-pass').value }),
+      });
+      admin = r.admin;
+      navigate('dashboard');
+    } catch (err) { renderLogin(err.message); }
+  };
+}
+
+/* ======== SHELL ======== */
+let currentView = 'dashboard';
+
+function navigate(view, id) {
+  currentView = view;
+  renderShell(view, id);
+}
+
+function renderShell(view, id) {
+  app.innerHTML = `
+    <div class="shell">
+      <div class="sidebar">
+        <div class="logo">ZAURA Admin</div>
+        <nav>
+          <a href="#" data-v="dashboard" class="${view === 'dashboard' ? 'active' : ''}">Tableau de bord</a>
+          <a href="#" data-v="organisations" class="${view === 'organisations' || view === 'org-detail' ? 'active' : ''}">Eglises</a>
+          <a href="#" data-v="paiements" class="${view === 'paiements' ? 'active' : ''}">Paiements en attente</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="admin-info">
+          ${esc(admin.nom || admin.email)}<br>
+          <a href="#" id="btn-logout" style="color:var(--red);font-size:.8rem">Deconnexion</a>
+        </div>
+      </div>
+      <div class="main" id="main-content"></div>
+    </div>`;
+
+  app.querySelectorAll('.sidebar nav a').forEach(a => {
+    a.onclick = (e) => { e.preventDefault(); navigate(a.dataset.v); };
+  });
+  document.getElementById('btn-logout').onclick = async (e) => {
+    e.preventDefault();
+    await apiFetch('/logout', { method: 'POST' }).catch(() => {});
+    admin = null;
+    renderLogin();
+  };
+
+  const main = document.getElementById('main-content');
+  if (view === 'dashboard') renderDashboard(main);
+  else if (view === 'organisations') renderOrganisations(main);
+  else if (view === 'org-detail') renderOrgDetail(main, id);
+  else if (view === 'paiements') renderPaiements(main);
+}
+
+/* ======== DASHBOARD ======== */
+async function renderDashboard(el) {
+  try {
+    const s = await apiFetch('/stats');
+    el.innerHTML = `
+      <h1>Tableau de bord</h1>
+      <p class="subtitle">Vue globale de la plateforme ZAURA</p>
+      <div class="stats">
+        <div class="stat"><div class="val">${nombre(s.total_orgs)}</div><div class="label">Eglises</div></div>
+        <div class="stat"><div class="val">${nombre(s.orgs_actives)}</div><div class="label">Actives</div></div>
+        <div class="stat"><div class="val">${nombre(s.orgs_essai)}</div><div class="label">En essai</div></div>
+        <div class="stat"><div class="val">${nombre(s.total_users)}</div><div class="label">Utilisateurs</div></div>
+        <div class="stat"><div class="val">${nombre(s.users_actifs)}</div><div class="label">Actifs</div></div>
+      </div>
+      <div class="card">
+        <h2>Actions rapides</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-sm" onclick="navigate('organisations')">Voir les eglises</button>
+          <button class="btn-sm" onclick="navigate('paiements')">Paiements en attente</button>
+        </div>
+      </div>`;
+  } catch (err) { el.innerHTML = '<div class="card" style="color:var(--red)">' + esc(err.message) + '</div>'; }
+}
+
+/* ======== ORGANISATIONS ======== */
+async function renderOrganisations(el) {
+  try {
+    const r = await apiFetch('/organisations');
+    const orgs = r.organisations || [];
+    el.innerHTML = `
+      <h1>Eglises inscrites</h1>
+      <p class="subtitle">${nombre(orgs.length)} eglise(s) sur la plateforme</p>
+      <div class="card" style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Nom</th><th>Slug</th><th>Email</th><th>Plan</th><th>Statut</th>
+            <th>Membres</th><th>Fin essai</th><th>Inscription</th><th></th>
+          </tr></thead>
+          <tbody>${orgs.map(o => `<tr>
+            <td><strong>${esc(o.nom)}</strong></td>
+            <td style="color:var(--muted)">${esc(o.slug)}</td>
+            <td>${esc(o.email)}</td>
+            <td><span class="badge badge-purple">${esc(o.plan)}</span></td>
+            <td>${badgeStatut(o.statut)}</td>
+            <td style="text-align:center">${nombre(o.nb_membres)}</td>
+            <td>${dateFr(o.date_fin_essai)}</td>
+            <td>${dateFr(o.created_at)}</td>
+            <td><button class="btn-sm btn-ghost" onclick="navigate('org-detail','${o.id}')">Details</button></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  } catch (err) { el.innerHTML = '<div class="card" style="color:var(--red)">' + esc(err.message) + '</div>'; }
+}
+
+/* ======== ORG DETAIL ======== */
+async function renderOrgDetail(el, id) {
+  try {
+    const r = await apiFetch('/organisations/' + id);
+    const o = r.organisation;
+    const membres = r.membres || [];
+    const abonnements = r.abonnements || [];
+    el.innerHTML = `
+      <div class="detail-header">
+        <div>
+          <h1>${esc(o.nom)}</h1>
+          <p class="subtitle" style="margin:0">${esc(o.email)} · Slug: ${esc(o.slug)}</p>
+        </div>
+        <div class="actions-row">
+          <button class="btn-sm btn-ghost" onclick="navigate('organisations')">Retour</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Gestion</h2>
+        <div class="fields-row">
+          <div class="field">
+            <label>Statut</label>
+            <select id="sel-statut">
+              ${['essai','actif','suspendu','expire'].map(s => `<option value="${s}" ${o.statut === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Plan</label>
+            <select id="sel-plan">
+              ${['essai','mensuel','annuel'].map(p => `<option value="${p}" ${o.plan === p ? 'selected' : ''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="align-self:end">
+            <button class="btn-sm" id="btn-save-org">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Enregistrer un abonnement</h2>
+        <form id="form-abo">
+          <div class="fields-row">
+            <div class="field"><label>Plan</label><select name="plan"><option value="mensuel">Mensuel</option><option value="annuel">Annuel</option></select></div>
+            <div class="field"><label>Montant (FCFA)</label><input name="montant" type="number" value="5000"></div>
+            <div class="field"><label>Moyen</label><select name="moyen_paiement"><option value="wave">Wave</option><option value="orange_money">Orange Money</option><option value="mtn_money">MTN Money</option></select></div>
+            <div class="field"><label>Reference</label><input name="reference_paiement" placeholder="TXN..."></div>
+            <div class="field"><label>Duree (mois)</label><input name="duree_mois" type="number" value="1" min="1"></div>
+          </div>
+          <button type="submit" class="btn-sm" style="margin-top:8px">Valider l'abonnement</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Membres (${nombre(membres.length)})</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Nom</th><th>Email</th><th>Role</th><th>Statut</th><th>Inscription</th></tr></thead>
+            <tbody>${membres.map(m => `<tr>
+              <td>${esc(m.prenom)} ${esc(m.nom)}</td>
+              <td>${esc(m.email)}</td>
+              <td><span class="badge badge-purple">${esc(m.role)}</span></td>
+              <td>${badgeStatut(m.statut)}</td>
+              <td>${dateFr(m.created_at)}</td>
+            </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">Aucun membre</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+
+      ${abonnements.length ? `<div class="card">
+        <h2>Historique des abonnements</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Plan</th><th>Montant</th><th>Moyen</th><th>Ref.</th><th>Debut</th><th>Fin</th><th>Statut</th></tr></thead>
+            <tbody>${abonnements.map(a => `<tr>
+              <td>${esc(a.plan)}</td>
+              <td>${nombre(a.montant)} FCFA</td>
+              <td>${esc(a.moyen_paiement)}</td>
+              <td>${esc(a.reference_paiement || '—')}</td>
+              <td>${dateFr(a.date_debut)}</td>
+              <td>${dateFr(a.date_fin)}</td>
+              <td>${badgeStatut(a.statut)}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </div>` : ''}
+
+      <div class="card" style="border-color:var(--red)">
+        <h2 style="color:var(--red)">Zone dangereuse</h2>
+        <button class="btn-sm btn-danger" id="btn-delete-org">Supprimer cette eglise</button>
+      </div>`;
+
+    document.getElementById('btn-save-org').onclick = async () => {
+      try {
+        await apiFetch('/organisations/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({
+            statut: document.getElementById('sel-statut').value,
+            plan: document.getElementById('sel-plan').value,
+          }),
+        });
+        showToast('Organisation mise a jour.');
+        renderOrgDetail(el, id);
+      } catch (err) { showToast(err.message, true); }
+    };
+
+    document.getElementById('form-abo').onsubmit = async (e) => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(e.target));
+      try {
+        await apiFetch('/organisations/' + id + '/abonnement', { method: 'POST', body: JSON.stringify(d) });
+        showToast('Abonnement enregistre et active.');
+        renderOrgDetail(el, id);
+      } catch (err) { showToast(err.message, true); }
+    };
+
+    document.getElementById('btn-delete-org').onclick = async () => {
+      if (!confirm('Supprimer definitivement cette eglise et toutes ses donnees ?')) return;
+      try {
+        await apiFetch('/organisations/' + id, { method: 'DELETE' });
+        showToast('Eglise supprimee.');
+        navigate('organisations');
+      } catch (err) { showToast(err.message, true); }
+    };
+  } catch (err) { el.innerHTML = '<div class="card" style="color:var(--red)">' + esc(err.message) + '</div>'; }
+}
+
+/* ======== PAIEMENTS EN ATTENTE ======== */
+async function renderPaiements(el) {
+  try {
+    const r = await apiFetch('/paiements-en-attente');
+    const paiements = r.paiements || [];
+
+    const nomMoyen = (m) => {
+      if (m === 'wave') return 'Wave';
+      if (m === 'orange_money') return 'Orange Money';
+      if (m === 'mtn_money') return 'MTN Money';
+      return m;
+    };
+
+    el.innerHTML = `
+      <h1>Paiements en attente</h1>
+      <p class="subtitle">${nombre(paiements.length)} paiement(s) a valider</p>
+      ${paiements.length ? `<div class="card" style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Eglise</th><th>Plan</th><th>Montant</th><th>Moyen</th><th>Reference</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>${paiements.map(p => `<tr>
+            <td><a href="#" onclick="event.preventDefault();navigate('org-detail','${p.org_id}')">${esc(p.org_nom)}</a></td>
+            <td>${esc(p.plan)}</td>
+            <td>${nombre(p.montant)} FCFA</td>
+            <td>${esc(nomMoyen(p.moyen_paiement))}</td>
+            <td><strong>${esc(p.reference_paiement)}</strong></td>
+            <td>${dateFr(p.date_debut)}</td>
+            <td style="display:flex;gap:4px">
+              <button class="btn-sm btn-green btn-valider" data-id="${p.id}">Valider</button>
+              <button class="btn-sm btn-danger btn-rejeter" data-id="${p.id}">Rejeter</button>
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>` : '<div class="card" style="color:var(--muted)">Aucun paiement en attente.</div>'}`;
+
+    el.querySelectorAll('.btn-valider').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          await apiFetch('/paiements/' + btn.dataset.id + '/valider', { method: 'PUT' });
+          showToast('Paiement valide et eglise activee.');
+          renderPaiements(el);
+        } catch (err) { showToast(err.message, true); btn.disabled = false; }
+      };
+    });
+    el.querySelectorAll('.btn-rejeter').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Rejeter ce paiement ?')) return;
+        btn.disabled = true;
+        try {
+          await apiFetch('/paiements/' + btn.dataset.id + '/rejeter', { method: 'PUT' });
+          showToast('Paiement rejete.');
+          renderPaiements(el);
+        } catch (err) { showToast(err.message, true); btn.disabled = false; }
+      };
+    });
+  } catch (err) { el.innerHTML = '<div class="card" style="color:var(--red)">' + esc(err.message) + '</div>'; }
+}
+
+/* ======== INIT ======== */
+(async function init() {
+  try {
+    const r = await apiFetch('/me');
+    admin = r.admin;
+    navigate('dashboard');
+  } catch {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>

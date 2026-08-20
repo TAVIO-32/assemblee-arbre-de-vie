@@ -94,6 +94,38 @@ router.delete('/organisations/:id', requireSuperAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+/** GET /api/admin/paiements-en-attente — Paiements a valider. */
+router.get('/paiements-en-attente', requireSuperAdmin, async (req, res) => {
+  const paiements = await db.all(`
+    SELECT a.*, o.nom AS org_nom, o.slug AS org_slug
+    FROM abonnements a
+    JOIN organisations o ON o.id = a.org_id
+    WHERE a.statut = 'en_attente'
+    ORDER BY a.created_at DESC
+  `);
+  res.json({ paiements });
+});
+
+/** PUT /api/admin/paiements/:id/valider — Valider un paiement en attente. */
+router.put('/paiements/:id/valider', requireSuperAdmin, async (req, res) => {
+  const abo = await db.get('SELECT * FROM abonnements WHERE id = ?', req.params.id);
+  if (!abo) return res.status(404).json({ error: 'Paiement introuvable.' });
+  if (abo.statut !== 'en_attente') return res.status(400).json({ error: 'Ce paiement n\'est pas en attente.' });
+
+  await db.run("UPDATE abonnements SET statut = 'actif' WHERE id = ?", abo.id);
+  await db.run("UPDATE organisations SET statut = 'actif', plan = ? WHERE id = ?", abo.plan, abo.org_id);
+  res.json({ ok: true, message: 'Paiement valide, eglise activee.' });
+});
+
+/** PUT /api/admin/paiements/:id/rejeter — Rejeter un paiement. */
+router.put('/paiements/:id/rejeter', requireSuperAdmin, async (req, res) => {
+  const abo = await db.get('SELECT * FROM abonnements WHERE id = ?', req.params.id);
+  if (!abo) return res.status(404).json({ error: 'Paiement introuvable.' });
+
+  await db.run("UPDATE abonnements SET statut = 'rejete' WHERE id = ?", abo.id);
+  res.json({ ok: true, message: 'Paiement rejete.' });
+});
+
 /** GET /api/admin/stats — Statistiques globales de la plateforme. */
 router.get('/stats', requireSuperAdmin, async (req, res) => {
   const total_orgs = (await db.get('SELECT COUNT(*) AS n FROM organisations')).n;
