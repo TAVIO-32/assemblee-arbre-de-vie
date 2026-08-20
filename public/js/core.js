@@ -209,13 +209,16 @@ function elementsNav(u) {
   const items = [];
   const p = u.perimetre;
 
+  const lbl1 = etat.org ? etat.org.label_section1 || 'Tribus' : 'Tribus';
+  const lbl2 = etat.org ? etat.org.label_section2 || 'Departements' : 'Departements';
+
   if (p.tout) {
     items.push(
       ['#/accueil', 'Tableau de bord'],
       ['#/validations', 'Validations'],
       ['#/fideles', 'Fideles'],
-      ['#/tribus', 'Tribus'],
-      ['#/departements', 'Departements'],
+      ['#/tribus', lbl1],
+      ['#/departements', lbl2],
       ['#/presences', 'Presences'],
       ['#/statistiques', 'Statistiques'],
       ['#/evolution', 'Evolution'],
@@ -225,15 +228,16 @@ function elementsNav(u) {
       ['#/qrcode', 'QR Code'],
       ['#/fiches', 'Fiches'],
       ['#/versets', 'Versets en direct'],
+      ['#/parametres', 'Parametres'],
     );
   } else if (estEncadrant(u)) {
     items.push(['#/accueil', 'Mon tableau de bord']);
     if (p.tribus.length) {
-      items.push(['separateur', p.tribus.length > 1 ? 'Mes tribus' : 'Ma tribu']);
+      items.push(['separateur', p.tribus.length > 1 ? 'Mes ' + lbl1.toLowerCase() : 'Mon ' + lbl1.toLowerCase().replace(/s$/, '')]);
       p.tribus.forEach((t) => items.push([`#/tribus/${t.id}`, t.nom]));
     }
     if (p.departements.length) {
-      items.push(['separateur', p.departements.length > 1 ? 'Mes departements' : 'Mon departement']);
+      items.push(['separateur', p.departements.length > 1 ? 'Mes ' + lbl2.toLowerCase() : 'Mon ' + lbl2.toLowerCase().replace(/s$/, '')]);
       p.departements.forEach((d) => items.push([`#/departements/${d.id}`, d.nom]));
     }
     items.push(['separateur', 'Suivi']);
@@ -246,7 +250,7 @@ function elementsNav(u) {
     );
   } else {
     items.push(['#/accueil', 'Accueil'], ['#/mes-presences', 'Mes presences']);
-    if (u.tribu_id) items.push([`#/tribus/${u.tribu_id}`, 'Ma tribu']);
+    if (u.tribu_id) items.push([`#/tribus/${u.tribu_id}`, 'Mon ' + lbl1.toLowerCase().replace(/s$/, '')]);
     items.push(['#/mes-cotisations', 'Mes cotisations'], ['#/mes-demandes', 'Mes demandes']);
   }
 

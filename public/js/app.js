@@ -38,6 +38,7 @@ const ROUTES = [
   { motif: /^#\/mes-cotisations$/,    nav: '#/mes-cotisations', acces: () => true, vue: vueMesCotisations },
   { motif: /^#\/mes-demandes$/,       nav: '#/mes-demandes',  acces: () => true,   vue: vueMesDemandes },
   { motif: /^#\/profil$/,             nav: '#/profil',        acces: () => true,   vue: vueProfil },
+  { motif: /^#\/parametres$/,         nav: '#/parametres',    acces: estDirection, vue: vueParametres },
 ];
 
 async function router() {

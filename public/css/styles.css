@@ -1,40 +1,41 @@
 /* ============================================================
    ZAURA — Feuille de style principale
-   Conception « mobile d'abord » : la mise en page de base cible
-   les petits écrans ; les écrans larges (≥ 900 px) passent en
-   disposition avec barre latérale.
+   Conception mobile-first. Ecrans larges >= 900 px en sidebar.
 
-   Couleurs de pointage : le trio vert / rouge / ambre est validé
-   pour la vision des couleurs (séparation CVD ≥ 8). Il n'est
-   JAMAIS employé seul : chaque état porte aussi une icône et un
-   libellé écrit.
+   Palette 2026 : gradient indigo-violet-rose.
+   Couleurs de pointage : vert / rouge / ambre valides CVD.
    ============================================================ */
 
 :root {
-  --primaire: #0f766e;          /* sarcelle : identité ZAURA */
-  --primaire-fonce: #115e59;
-  --primaire-pale: #ecfdf9;
-  --primaire-bord: #99f6e4;
+  --primaire: #7c3aed;
+  --primaire-fonce: #6d28d9;
+  --primaire-pale: #f5f3ff;
+  --primaire-bord: #c4b5fd;
 
-  --vert: #15803d;              /* présent / payé */
+  --gradient: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+  --gradient-vif: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+  --gradient-doux: linear-gradient(135deg, #ede9fe, #fae8ff, #fce7f3);
+
+  --vert: #15803d;
   --vert-pale: #dcfce7;
-  --rouge: #dc2626;             /* absent / alerte */
+  --rouge: #dc2626;
   --rouge-pale: #fee2e2;
-  --ambre: #a16207;             /* excusé / en attente (fond de bouton) */
+  --ambre: #a16207;
   --ambre-clair: #ca8a04;
   --ambre-pale: #fef9c3;
-  --or: #b45309;                /* accent hiérarchie */
+  --or: #b45309;
   --or-pale: #fffbeb;
 
-  --fond: #f6f7f6;
+  --fond: #faf9ff;
   --carte: #ffffff;
-  --texte: #1c2624;
-  --texte-doux: #64756f;
-  --texte-tres-doux: #94a39d;
-  --bordure: #e3e8e6;
-  --grille: #eef2f0;            /* axes et grilles : volontairement discrets */
+  --texte: #1e1b4b;
+  --texte-doux: #6b7280;
+  --texte-tres-doux: #9ca3af;
+  --bordure: #e5e7eb;
+  --grille: #f3f4f6;
   --rayon: 14px;
-  --ombre: 0 1px 2px rgba(15, 40, 35, .06), 0 4px 12px rgba(15, 40, 35, .04);
+  --ombre: 0 1px 3px rgba(99,102,241,.06), 0 4px 14px rgba(99,102,241,.05);
+  --ombre-elevee: 0 4px 6px rgba(99,102,241,.08), 0 10px 24px rgba(99,102,241,.1);
 }
 
 * { box-sizing: border-box; }
@@ -48,11 +49,11 @@ body {
   line-height: 1.5;
 }
 
-/* ---------- Structure générale ---------- */
+/* ---------- Structure ---------- */
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
 .entete {
-  background: var(--primaire);
+  background: var(--gradient-vif);
   color: #fff;
   padding: 10px 16px;
   display: flex;
@@ -67,8 +68,6 @@ body {
 .entete .compte .role { opacity: .9; }
 .entete button { margin-top: 3px; }
 
-/* Sur petit écran, l'entête doit rester compacte : la fiche de présence est
-   collante juste en dessous et ne doit pas être repoussée hors de l'écran. */
 @media (max-width: 620px) {
   .entete { padding: 8px 12px; }
   .entete .logo { font-size: .98rem; }
@@ -97,7 +96,9 @@ body {
   font-size: .88rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: background .15s, color .15s;
 }
+.nav a:hover { background: var(--primaire-pale); color: var(--primaire); }
 .nav a.actif { background: var(--primaire-pale); color: var(--primaire-fonce); }
 .nav .separateur-nav {
   flex: 0 0 auto; align-self: center;
@@ -118,9 +119,7 @@ body {
     flex-direction: column;
     width: 232px;
     flex: 0 0 232px;
-    background: transparent;      /* le filet vertical est porté par .contenu,
-                                     sinon le panneau s'arrête au milieu des
-                                     pages longues */
+    background: transparent;
     border-bottom: none;
     position: sticky; top: 56px;
     padding: 16px 10px;
@@ -155,7 +154,7 @@ h3 { font-size: .9rem; margin: 0 0 8px; color: var(--texte-doux); }
   justify-content: space-between; gap: 10px; margin-bottom: 6px;
 }
 
-/* ---------- Tuiles d'indicateurs ---------- */
+/* ---------- Tuiles ---------- */
 .grille-stats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -167,17 +166,19 @@ h3 { font-size: .9rem; margin: 0 0 8px; color: var(--texte-doux); }
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
   padding: 14px 16px;
+  border-top: 3px solid transparent;
 }
 .stat .valeur { font-size: 1.75rem; font-weight: 800; line-height: 1.15; letter-spacing: -1px; }
 .stat .libelle { font-size: .76rem; color: var(--texte-doux); margin-top: 2px; }
 .stat .appoint { font-size: .72rem; color: var(--texte-tres-doux); margin-top: 4px; }
+.stat.accent { border-image: var(--gradient) 1; }
 .stat.accent .valeur { color: var(--primaire); }
+.stat.alerte { border-top-color: var(--rouge); }
 .stat.alerte .valeur { color: var(--rouge); }
-.stat.bien .valeur   { color: var(--vert); }
+.stat.bien { border-top-color: var(--vert); }
+.stat.bien .valeur { color: var(--vert); }
 
-/* ---------- Graphiques (marques fines, axes discrets) ---------- */
-
-/* Jauge horizontale : magnitude + valeur toujours écrite en clair. */
+/* ---------- Graphiques ---------- */
 .jauge-ligne { display: flex; align-items: center; gap: 8px; }
 .jauge {
   background: var(--grille); border-radius: 999px; height: 8px;
@@ -189,33 +190,30 @@ h3 { font-size: .9rem; margin: 0 0 8px; color: var(--texte-doux); }
 .jauge.haute > div   { background: var(--vert); }
 .jauge-valeur { font-size: .82rem; font-weight: 700; min-width: 38px; text-align: right; }
 
-/* Barres de répartition (effectifs, rôles) : une seule teinte. */
 .barres { display: flex; flex-direction: column; gap: 9px; }
 .barre-ligne { display: grid; grid-template-columns: minmax(90px, 34%) 1fr auto; gap: 10px; align-items: center; }
 .barre-ligne .etiquette { font-size: .82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barre-piste { background: var(--grille); border-radius: 4px; height: 14px; overflow: hidden; }
 .barre-piste > div {
-  height: 100%; background: var(--primaire);
-  border-radius: 0 4px 4px 0;   /* extrémité arrondie, ancrée à la ligne de base */
+  height: 100%; background: var(--gradient);
+  border-radius: 0 4px 4px 0;
   min-width: 3px;
 }
 .barre-ligne .mesure { font-size: .82rem; font-weight: 700; min-width: 30px; text-align: right; }
 .barre-ligne .mesure small { font-weight: 500; color: var(--texte-tres-doux); }
 
-/* Colonnes d'évolution mensuelle : série unique, pas de légende. */
 .colonnes {
   display: flex; align-items: flex-end; gap: 4px;
   height: 130px; padding-top: 10px;
   border-bottom: 1px solid var(--grille);
 }
 .colonne { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
-.colonne .tige { width: 100%; max-width: 34px; background: var(--primaire); border-radius: 4px 4px 0 0; min-height: 2px; }
+.colonne .tige { width: 100%; max-width: 34px; background: var(--gradient); border-radius: 4px 4px 0 0; min-height: 2px; }
 .colonne .tige.vide { background: var(--grille); }
 .colonne .val { font-size: .68rem; font-weight: 700; color: var(--texte-doux); }
 .axe-mois { display: flex; gap: 4px; margin-top: 6px; }
 .axe-mois span { flex: 1; text-align: center; font-size: .66rem; color: var(--texte-tres-doux); }
 
-/* Répartition des pointages : segments contigus séparés de 2 px. */
 .repartition { display: flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; margin: 10px 0 8px; }
 .repartition > div { min-width: 2px; }
 .repartition .seg-present { background: var(--vert); }
@@ -232,13 +230,16 @@ input, select, textarea {
   padding: 11px 12px;
   border: 1px solid var(--bordure);
   border-radius: 9px;
-  font-size: 1rem;             /* ≥ 16 px : évite le zoom automatique iOS */
+  font-size: 1rem;
   font-family: inherit;
   background: #fff;
   color: var(--texte);
+  transition: border-color .15s, box-shadow .15s;
 }
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--primaire); outline-offset: 1px; border-color: var(--primaire);
+  outline: none;
+  border-color: var(--primaire);
+  box-shadow: 0 0 0 3px rgba(124,58,237,.12);
 }
 textarea { min-height: 90px; resize: vertical; }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
@@ -246,12 +247,12 @@ textarea { min-height: 90px; resize: vertical; }
 @media (max-width: 560px) { .ligne-champs, .ligne-champs-3 { grid-template-columns: 1fr; } }
 .aide { font-size: .78rem; color: var(--texte-doux); margin: 4px 0 0; }
 
-/* Cases à cocher des départements */
 .cases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .cases label {
   display: inline-flex; align-items: center; gap: 6px; margin: 0;
   padding: 7px 11px; border: 1px solid var(--bordure); border-radius: 999px;
   font-size: .8rem; font-weight: 600; cursor: pointer; background: #fff;
+  transition: all .15s;
 }
 .cases label:has(input:checked) { background: var(--primaire-pale); border-color: var(--primaire-bord); color: var(--primaire-fonce); }
 .cases input { width: auto; margin: 0; accent-color: var(--primaire); }
@@ -269,22 +270,26 @@ button, .btn {
   cursor: pointer;
   text-decoration: none;
   text-align: center;
+  transition: background .15s, box-shadow .15s, transform .1s;
 }
-button:hover, .btn:hover { background: var(--primaire-fonce); }
-button:disabled { opacity: .5; cursor: not-allowed; }
+button:hover, .btn:hover { background: var(--primaire-fonce); box-shadow: 0 2px 8px rgba(124,58,237,.25); }
+button:active, .btn:active { transform: scale(.97); }
+button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-gradient { background: var(--gradient-vif); }
+.btn-gradient:hover { box-shadow: 0 4px 14px rgba(124,58,237,.3); }
 .btn-secondaire { background: var(--primaire-pale); color: var(--primaire-fonce); }
-.btn-secondaire:hover { background: #d6f5ee; }
-.btn-neutre { background: #f1f4f3; color: var(--texte-doux); }
-.btn-neutre:hover { background: #e6ebe9; }
+.btn-secondaire:hover { background: #ede9fe; box-shadow: none; }
+.btn-neutre { background: var(--grille); color: var(--texte-doux); }
+.btn-neutre:hover { background: #e5e7eb; box-shadow: none; }
 .btn-danger { background: var(--rouge-pale); color: var(--rouge); }
-.btn-danger:hover { background: #fecaca; }
+.btn-danger:hover { background: #fecaca; box-shadow: none; }
 .btn-vert { background: var(--vert); }
 .btn-vert:hover { background: #166534; }
 .btn-petit { padding: 7px 12px; font-size: .8rem; }
 .btn-bloc { width: 100%; margin-top: 16px; }
 .barre-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-/* ---------- Listes d'éléments ---------- */
+/* ---------- Listes ---------- */
 .liste { display: flex; flex-direction: column; gap: 10px; }
 .element {
   background: var(--carte);
@@ -295,23 +300,24 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
+  transition: box-shadow .15s;
 }
 .element.cliquable { cursor: pointer; }
-.element.cliquable:hover { box-shadow: 0 2px 4px rgba(15,40,35,.08), 0 8px 20px rgba(15,40,35,.07); }
+.element.cliquable:hover { box-shadow: var(--ombre-elevee); }
 .element .infos { flex: 1 1 190px; min-width: 0; }
 .element .nom { font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .element .detail { font-size: .81rem; color: var(--texte-doux); overflow-wrap: anywhere; }
 .element .actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .element .actions select { width: auto; min-width: 120px; padding: 7px 10px; font-size: .84rem; }
 
-/* Grille de cartes (tribus, départements) */
 .grille-cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .carte-equipe {
   background: var(--carte); border-radius: var(--rayon); box-shadow: var(--ombre);
   padding: 14px 16px; text-decoration: none; color: inherit; display: block;
   border-left: 4px solid var(--primaire);
+  transition: box-shadow .15s, transform .1s;
 }
-.carte-equipe:hover { box-shadow: 0 2px 4px rgba(15,40,35,.08), 0 8px 20px rgba(15,40,35,.07); }
+.carte-equipe:hover { box-shadow: var(--ombre-elevee); transform: translateY(-1px); }
 .carte-equipe.sans-responsable { border-left-color: var(--ambre-clair); }
 .carte-equipe .titre { font-weight: 800; font-size: 1rem; letter-spacing: .3px; }
 .carte-equipe .meneur { font-size: .8rem; color: var(--texte-doux); margin: 3px 0 10px; }
@@ -333,9 +339,9 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .badge-ambre  { background: var(--ambre-pale);  color: var(--ambre); }
 .badge-teal   { background: var(--primaire-pale); color: var(--primaire-fonce); }
 .badge-or     { background: var(--or-pale); color: var(--or); }
-.badge-gris   { background: #f1f4f3; color: var(--texte-doux); }
+.badge-gris   { background: var(--grille); color: var(--texte-doux); }
 
-/* ---------- Hiérarchie pastorale ---------- */
+/* ---------- Hierarchie ---------- */
 .hierarchie { display: flex; flex-direction: column; gap: 8px; }
 .echelon {
   display: flex; align-items: center; gap: 12px;
@@ -351,13 +357,13 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .echelon .titre-echelon { font-weight: 700; font-size: .92rem; }
 .echelon .desc { font-size: .78rem; color: var(--texte-doux); }
 .echelon .effectif { margin-left: auto; font-weight: 800; font-size: 1.05rem; }
-.echelon.n2 { background: #f0fdfa; border-left-color: #14b8a6; }
-.echelon.n3 { background: #f7fefc; border-left-color: #5eead4; }
-.echelon.n4 { background: var(--or-pale); border-left-color: var(--or); }
-.echelon.n5 { background: #fafaf9; border-left-color: #a8a29e; }
-.echelon.n6 { background: #fafafa; border-left-color: var(--bordure); }
+.echelon.n2 { background: #eef2ff; border-left-color: #818cf8; }
+.echelon.n3 { background: #f5f3ff; border-left-color: #a78bfa; }
+.echelon.n4 { background: #fdf4ff; border-left-color: #c084fc; }
+.echelon.n5 { background: var(--or-pale); border-left-color: var(--or); }
+.echelon.n6 { background: var(--grille); border-left-color: var(--bordure); }
 
-/* ---------- Fiche de présence ---------- */
+/* ---------- Fiche de presence ---------- */
 .fiche-entete {
   position: sticky; top: 56px; z-index: 10;
   background: var(--carte); border-radius: var(--rayon); box-shadow: var(--ombre);
@@ -368,7 +374,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .compteur {
   display: inline-flex; align-items: baseline; gap: 5px;
   padding: 5px 11px; border-radius: 999px; font-size: .8rem; font-weight: 600;
-  background: #f1f4f3; color: var(--texte-doux);
+  background: var(--grille); color: var(--texte-doux);
 }
 .compteur strong { font-size: .95rem; }
 .compteur.c-present { background: var(--vert-pale); color: var(--vert); }
@@ -380,14 +386,13 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   color: var(--texte-tres-doux); margin: 16px 0 6px; padding-left: 2px;
 }
 
-/* Boutons de pointage : couleur + icône + libellé écrit (jamais la couleur seule) */
 .segments { display: flex; gap: 5px; flex: 0 0 auto; }
 .segments button {
-  background: #f1f4f3; color: var(--texte-doux);
+  background: var(--grille); color: var(--texte-doux);
   padding: 9px 12px; font-size: .78rem; border-radius: 8px;
   border: 1.5px solid transparent; min-width: 62px;
 }
-.segments button:hover { background: #e6ebe9; }
+.segments button:hover { background: #e5e7eb; }
 .segments button.sel-present { background: var(--vert);  color: #fff; border-color: var(--vert); }
 .segments button.sel-absent  { background: var(--rouge); color: #fff; border-color: var(--rouge); }
 .segments button.sel-excuse  { background: var(--ambre); color: #fff; border-color: var(--ambre); }
@@ -440,29 +445,34 @@ td.numerique, th.numerique { text-align: right; }
 #toast.visible { opacity: 1; }
 #toast.erreur { background: var(--rouge); }
 
-/* ---------- Écran de connexion ---------- */
+/* ---------- Ecran de connexion ---------- */
 .ecran-auth {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 20px; background: linear-gradient(165deg, #115e59 0%, #0f766e 55%, #047857 100%);
+  padding: 20px;
+  background: linear-gradient(165deg, #312e81 0%, #6366f1 30%, #a855f7 65%, #ec4899 100%);
 }
-.boite-auth { background: #fff; border-radius: 18px; padding: 26px 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 50px rgba(0,0,0,.22); }
-.boite-auth .marque { text-align: center; margin-bottom: 4px; font-size: 1.9rem; }
-.boite-auth .titre-app { text-align: center; font-size: 1.4rem; font-weight: 800; color: var(--primaire-fonce); letter-spacing: -.3px; }
+.boite-auth {
+  background: rgba(255,255,255,.97); backdrop-filter: blur(12px);
+  border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 440px;
+  box-shadow: 0 24px 60px rgba(49,46,129,.3);
+}
+.boite-auth .marque { text-align: center; margin-bottom: 4px; }
+.boite-auth .titre-app { text-align: center; font-size: 1.4rem; font-weight: 800; letter-spacing: -.3px; background: var(--gradient-vif); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .boite-auth .sous-titre { text-align: center; margin-bottom: 4px; }
-.onglets { display: flex; background: #f1f4f3; border-radius: 10px; padding: 4px; margin: 16px 0; }
-.onglets button { flex: 1; background: none; color: var(--texte-doux); padding: 9px; font-size: .89rem; }
+.onglets { display: flex; background: var(--grille); border-radius: 10px; padding: 4px; margin: 16px 0; }
+.onglets button { flex: 1; background: none; color: var(--texte-doux); padding: 9px; font-size: .89rem; border-radius: 8px; }
 .onglets button.actif { background: #fff; color: var(--primaire-fonce); box-shadow: var(--ombre); }
 
-/* ---------- Liens WhatsApp générés ---------- */
+/* ---------- Liens WhatsApp ---------- */
 .lien-wa {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 9px; margin-bottom: 8px;
 }
 .lien-wa a { color: var(--vert); font-weight: 700; text-decoration: none; white-space: nowrap; }
 
-/* ---------- Comptage par catégorie ---------- */
+/* ---------- Comptage ---------- */
 .onglets-fiche {
-  display: flex; background: #f1f4f3; border-radius: 10px; padding: 4px;
+  display: flex; background: var(--grille); border-radius: 10px; padding: 4px;
   margin-bottom: 14px;
 }
 .onglets-fiche button {
@@ -483,7 +493,7 @@ td.numerique, th.numerique { text-align: right; }
   width: 48px; height: 48px; border-radius: 12px;
   display: grid; place-items: center; font-size: 1.4rem; flex: 0 0 48px;
 }
-.comptage-categorie .cat-icone.hommes  { background: #dbeafe; }
+.comptage-categorie .cat-icone.hommes  { background: #e0e7ff; }
 .comptage-categorie .cat-icone.femmes  { background: #fce7f3; }
 .comptage-categorie .cat-icone.enfants { background: #fef9c3; }
 .comptage-categorie .cat-infos { flex: 1; }
@@ -500,7 +510,7 @@ td.numerique, th.numerique { text-align: right; }
 .comptage-boutons .btn-plus:hover { background: #bbf7d0; }
 
 .comptage-total {
-  background: var(--primaire-pale); border-radius: var(--rayon);
+  background: var(--gradient-doux); border-radius: var(--rayon);
   padding: 18px 16px; text-align: center;
 }
 .comptage-total .total-valeur {
@@ -545,9 +555,9 @@ img.avatar { border: 2px solid var(--primaire-bord); }
 .filtres label { margin-top: 0; }
 .pile { display: flex; flex-direction: column; gap: 2px; }
 
-/* ---------- Pointage culte (mode combiné) ---------- */
+/* ---------- Pointage culte ---------- */
 .culte-total {
-  background: linear-gradient(135deg, var(--primaire), #115e59);
+  background: var(--gradient-vif);
   border-radius: var(--rayon); padding: 20px 16px; text-align: center;
   color: #fff; margin-bottom: 18px;
 }
@@ -594,16 +604,18 @@ img.avatar { border: 2px solid var(--primaire-bord); }
   margin-top: 6px; font-weight: 600;
 }
 
-/* ---------- ZAURA : logo et onglets à 3 colonnes ---------- */
+/* ---------- ZAURA : logo et onglets ---------- */
 .logo-zaura {
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; color: var(--primaire);
+  background: rgba(255,255,255,.2); color: #fff;
   font-weight: 900; font-size: 1.1rem; letter-spacing: -.5px;
   flex-shrink: 0;
+  backdrop-filter: blur(4px);
 }
 .logo-zaura-grand {
-  width: 64px; height: 64px; border-radius: 14px;
+  width: 64px; height: 64px; border-radius: 16px;
   font-size: 2.2rem;
+  background: var(--gradient-vif); color: #fff;
 }
 .onglets-3 button { flex: 1 1 33.33%; font-size: .82rem; padding: 9px 6px; }

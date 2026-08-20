@@ -1,32 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="90" fill="#ffffff"/>
-
-  <!-- VH cursive gold -->
-  <g transform="translate(60, 60) scale(0.85)">
-    <!-- V cursive -->
-    <path d="M 40 120 Q 50 80 80 60 Q 110 42 130 70 Q 150 100 120 200 Q 100 260 90 300 Q 85 320 95 310 Q 130 260 170 200 Q 200 155 220 140"
-          fill="none" stroke="#c5a832" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-
-    <!-- Flame/drop on the V -->
-    <path d="M 150 55 Q 155 30 160 50 Q 168 75 175 60 Q 180 45 172 30 Q 165 18 158 30 Q 150 45 150 55 Z"
-          fill="none" stroke="#c5a832" stroke-width="5" stroke-linecap="round"/>
-    <path d="M 155 62 Q 158 48 162 55 Q 165 62 162 65 Q 158 68 155 62 Z"
-          fill="none" stroke="#c5a832" stroke-width="3"/>
-
-    <!-- H cursive -->
-    <path d="M 200 70 Q 210 50 225 100 Q 240 150 230 220 Q 225 260 220 300 Q 218 320 225 310
-             M 210 200 Q 250 170 290 160 Q 310 155 320 170 Q 335 195 310 280 Q 300 310 310 320 Q 325 330 350 300"
-          fill="none" stroke="#c5a832" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <!-- VASES text -->
-  <text x="270" y="340" font-family="'Trebuchet MS', 'Arial', sans-serif" font-weight="900"
-        font-size="72" fill="#0f766e" letter-spacing="8">VASES</text>
-
-  <!-- D'HONNEUR text -->
-  <text x="270" y="410" font-family="'Trebuchet MS', 'Arial', sans-serif" font-weight="900"
-        font-size="72" fill="#0f766e" letter-spacing="6">D'HONNEUR</text>
-
-  <!-- Red underline -->
-  <rect x="350" y="425" width="120" height="12" rx="2" fill="#a81c1c"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#g)"/>
+  <path d="M 128 152 L 340 152 L 176 360 L 384 360"
+        fill="none" stroke="#fff" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
