@@ -114,5 +114,4 @@ router.put('/labels', requireAuth, requireDirection, async (req, res) => {
   await upsert('label_section2', label_section2);
   res.json({ ok: true });
 });
-
 module.exports = router;
