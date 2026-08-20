@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="grad-icon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <rect x="10" y="15" width="90" height="90" rx="22" fill="url(#grad)"/>
+  <!-- Z letter -->
+  <path d="M32 38h46v0l-40 48h44" stroke="#fff" stroke-width="7.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Small cross accent -->
+  <circle cx="88" cy="28" r="8" fill="#fff" opacity="0.25"/>
+  <line x1="88" y1="23" x2="88" y2="33" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  <line x1="83" y1="28" x2="93" y2="28" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  <!-- ZAURA text -->
+  <text x="120" y="80" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="62" font-weight="900" letter-spacing="3" fill="url(#grad)">ZAURA</text>
+  <!-- Tagline -->
+  <text x="122" y="102" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="500" letter-spacing="5" fill="#94a3b8">GESTION D'EGLISE</text>
+</svg>
