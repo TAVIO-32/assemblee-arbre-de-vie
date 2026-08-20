@@ -1231,9 +1231,9 @@ async function vueAbonnement(vue) {
   const estEssai = r.plan === 'essai';
 
   const NUMEROS = {
-    wave: '+242 06 XXX XX XX',
-    orange_money: '+242 06 XXX XX XX',
-    mtn_money: '+242 06 XXX XX XX',
+    wave: '07 19 36 35 81',
+    orange_money: '07 19 36 35 81',
+    mtn_money: '07 19 36 35 81',
   };
 
   const LOGOS = {
