@@ -35,15 +35,23 @@ router.post('/register', async (req, res) => {
   const dateFin = new Date();
   dateFin.setDate(dateFin.getDate() + 14);
 
-  const orgId = await db.insert(
-    `INSERT INTO organisations (nom, slug, email, telephone, adresse, plan, statut, date_fin_essai)
-     VALUES (?, ?, ?, ?, ?, 'essai', 'essai', ?)`,
-    String(nom_eglise).trim(), slug, emailNorm,
-    String(telephone || '').trim(), String(adresse || '').trim(),
-    dateFin.toISOString().split('T')[0]
-  );
+  let orgId;
+  try {
+    orgId = await db.insert(
+      `INSERT INTO organisations (nom, slug, email, telephone, adresse, plan, statut, date_fin_essai)
+       VALUES (?, ?, ?, ?, ?, 'essai', 'essai', ?)`,
+      String(nom_eglise).trim(), slug, emailNorm,
+      String(telephone || '').trim(), String(adresse || '').trim(),
+      dateFin.toISOString().split('T')[0]
+    );
+  } catch (err) {
+    console.error('Erreur creation organisation:', err);
+    return res.status(500).json({ error: 'Erreur lors de la creation de l\'eglise. Veuillez reessayer.' });
+  }
 
-  await db.creerOrgAvecReferentiel(orgId);
+  try { await db.creerOrgAvecReferentiel(orgId); } catch (err) {
+    console.error('Erreur referentiel:', err);
+  }
 
   const hash = bcrypt.hashSync(String(password), 10);
   const userId = await db.insert(
@@ -67,6 +75,17 @@ router.post('/register', async (req, res) => {
 /** GET /api/organisations/plans — Liste des plans disponibles. */
 router.get('/plans', (req, res) => {
   res.json({ plans: PLANS });
+});
+
+/** GET /api/organisations/health — Diagnostic base de donnees. */
+router.get('/health', async (req, res) => {
+  try {
+    await db.get('SELECT 1 AS ok');
+    const nbOrgs = await db.get('SELECT COUNT(*) AS n FROM organisations');
+    res.json({ db: db.engine, ok: true, organisations: nbOrgs ? nbOrgs.n : 0 });
+  } catch (err) {
+    res.status(500).json({ db: db.engine, ok: false, error: err.message });
+  }
 });
 
 module.exports = router;
