@@ -12,11 +12,13 @@
 async function vueAccueilDirection(vue) {
   const s = await api.get('/stats/global');
   const e = s.effectifs;
+  const lbl1 = etat.org ? etat.org.label_section1 || 'Tribus' : 'Tribus';
+  const lbl2 = etat.org ? etat.org.label_section2 || 'Departements' : 'Departements';
 
   vue.innerHTML = `
     <h1>Tableau de bord de l'assemblée</h1>
     <p class="sous-titre">Vue d'ensemble : ${nombre(e.fideles_actifs)} membre(s),
-      ${nombre(e.tribus)} tribu(s), ${nombre(e.departements)} département(s).</p>
+      ${nombre(e.tribus)} ${lbl1.toLowerCase()}, ${nombre(e.departements)} ${lbl2.toLowerCase()}.</p>
 
     ${e.comptes_en_attente ? `<div class="encart-attention">⏳ <strong>${e.comptes_en_attente}</strong>
       compte(s) en attente de validation — <a href="#/validations">valider maintenant</a></div>` : ''}
@@ -68,10 +70,10 @@ async function vueAccueilDirection(vue) {
         </div>`).join('')}
     </div></div>
 
-    <h2>Les tribus</h2>
+    <h2>${esc(lbl1)}</h2>
     ${tableauEquipes(s.par_tribu, 'tribus', 'Patriarche', 'patriarche')}
 
-    <h2>Les départements</h2>
+    <h2>${esc(lbl2)}</h2>
     ${tableauEquipes(s.par_departement, 'departements', 'Responsable', 'responsable')}`;
 }
 
@@ -108,10 +110,12 @@ function tableauEquipes(lignes, chemin, libelleMeneur, prefixe) {
 async function vueStatistiques(vue) {
   const s = await api.get('/stats/global');
   const e = s.effectifs;
+  const lbl1 = etat.org ? etat.org.label_section1 || 'Tribus' : 'Tribus';
+  const lbl2 = etat.org ? etat.org.label_section2 || 'Departements' : 'Departements';
 
   vue.innerHTML = `
     <h1>Statistiques</h1>
-    <p class="sous-titre">Assiduité, effectifs, rôles, tribus et départements.</p>
+    <p class="sous-titre">Assiduité, effectifs, rôles, ${lbl1.toLowerCase()} et ${lbl2.toLowerCase()}.</p>
 
     <div class="grille-stats">
       ${tuile(nombre(e.fideles_actifs), 'Fidèles actifs', { ton: 'accent' })}
@@ -120,12 +124,12 @@ async function vueStatistiques(vue) {
       ${tuile(nombre(s.alertes_absences.length), 'Fidèles en alerte', { ton: s.alertes_absences.length ? 'alerte' : '' })}
     </div>
 
-    <h2>Effectif par tribu</h2>
+    <h2>Effectif par ${lbl1.toLowerCase()}</h2>
     <div class="carte">${barres(s.par_tribu.map((t) => ({ etiquette: t.nom, valeur: t.nb_membres })))}</div>
 
-    <h2>Taux de présence par tribu</h2>
+    <h2>Taux de présence par ${lbl1.toLowerCase()}</h2>
     <div class="carte conteneur-table"><table>
-      <thead><tr><th>Tribu</th><th class="numerique">Fidèles</th><th class="numerique">Pointages</th>
+      <thead><tr><th>${esc(lbl1)}</th><th class="numerique">Fidèles</th><th class="numerique">Pointages</th>
         <th style="min-width:104px">Présence</th></tr></thead>
       <tbody>${s.par_tribu.map((t) => `<tr>
         <td><a href="#/tribus/${t.id}"><strong>${esc(t.nom)}</strong></a></td>
@@ -135,12 +139,12 @@ async function vueStatistiques(vue) {
       </tr>`).join('')}</tbody>
     </table></div>
 
-    <h2>Effectif par département</h2>
+    <h2>Effectif par ${lbl2.toLowerCase()}</h2>
     <div class="carte">${barres(s.par_departement.map((d) => ({ etiquette: d.nom, valeur: d.nb_membres })))}</div>
 
-    <h2>Taux de présence par département</h2>
+    <h2>Taux de présence par ${lbl2.toLowerCase()}</h2>
     <div class="carte conteneur-table"><table>
-      <thead><tr><th>Département</th><th class="numerique">Membres</th><th class="numerique">Pointages</th>
+      <thead><tr><th>${esc(lbl2)}</th><th class="numerique">Membres</th><th class="numerique">Pointages</th>
         <th style="min-width:104px">Présence</th></tr></thead>
       <tbody>${s.par_departement.map((d) => `<tr>
         <td><a href="#/departements/${d.id}"><strong>${esc(d.nom)}</strong></a></td>
@@ -412,10 +416,11 @@ async function vueTribus(vue) {
   const [tribus, membres] = await Promise.all([
     chargerTribus(), api.get('/users?statut=actif').then((r) => r.users),
   ]);
+  const lbl1 = etat.org ? etat.org.label_section1 || 'Tribus' : 'Tribus';
 
   vue.innerHTML = `
-    <h1>Les tribus</h1>
-    <p class="sous-titre">Chaque tribu est conduite par un patriarche, qui pointe la présence de ses fidèles.</p>
+    <h1>${esc(lbl1)}</h1>
+    <p class="sous-titre">Chaque ${lbl1.toLowerCase().replace(/s$/, '')} est conduit(e) par un patriarche, qui pointe la présence de ses fidèles.</p>
 
     <div class="grille-cartes">
       ${tribus.map((t) => `<a class="carte-equipe ${t.patriarche_id ? '' : 'sans-responsable'}" href="#/tribus/${t.id}">
@@ -446,7 +451,7 @@ async function vueTribus(vue) {
       </div>`).join('')}
     </div>
 
-    <h2>Ajouter une tribu</h2>
+    <h2>Ajouter</h2>
     <div class="carte">
       <form id="form-tribu">
         <div class="ligne-champs">
@@ -610,10 +615,11 @@ async function vueDepartements(vue) {
   const [departements, membres] = await Promise.all([
     chargerDepartements(), api.get('/users?statut=actif').then((r) => r.users),
   ]);
+  const lbl2 = etat.org ? etat.org.label_section2 || 'Departements' : 'Departements';
 
   vue.innerHTML = `
-    <h1>Les départements</h1>
-    <p class="sous-titre">Chaque département est conduit par un responsable, qui pointe la présence de ses membres.</p>
+    <h1>${esc(lbl2)}</h1>
+    <p class="sous-titre">Chaque ${lbl2.toLowerCase().replace(/s$/, '')} est conduit(e) par un responsable, qui pointe la présence de ses membres.</p>
 
     <div class="grille-cartes">
       ${departements.map((d) => `<a class="carte-equipe ${d.responsable_id ? '' : 'sans-responsable'}" href="#/departements/${d.id}">
@@ -644,7 +650,7 @@ async function vueDepartements(vue) {
       </div>`).join('')}
     </div>
 
-    <h2>Ajouter un département</h2>
+    <h2>Ajouter</h2>
     <div class="carte">
       <form id="form-dept">
         <div class="ligne-champs">
@@ -1105,5 +1111,60 @@ async function vueVersets(vue) {
     const el = document.getElementById('zone-verset');
     if (el.requestFullscreen) el.requestFullscreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  };
+}
+
+/* ============ Parametres de l'eglise ============ */
+
+async function vueParametres(vue) {
+  const o = etat.org || {};
+  const lbl1 = o.label_section1 || 'Tribus';
+  const lbl2 = o.label_section2 || 'Departements';
+
+  vue.innerHTML = `
+    <h1>Parametres de l'eglise</h1>
+    <p class="sous-titre">Personnalisez les noms de vos sections. Chaque eglise peut utiliser ses propres termes.</p>
+
+    <div class="carte">
+      <h2 style="margin-top:0">Noms des sections</h2>
+      <p class="aide" style="margin-bottom:14px">Exemples : Tribus, Cellules, Zones, Groupes, Familles...</p>
+      <form id="form-labels">
+        <div class="ligne-champs">
+          <div>
+            <label>Section 1 (actuellement : ${esc(lbl1)})</label>
+            <input name="label_section1" value="${esc(lbl1)}" required placeholder="ex. Tribus, Cellules, Zones">
+          </div>
+          <div>
+            <label>Section 2 (actuellement : ${esc(lbl2)})</label>
+            <input name="label_section2" value="${esc(lbl2)}" required placeholder="ex. Departements, Commissions, Ministeres">
+          </div>
+        </div>
+        <button class="btn-bloc" type="submit">Enregistrer</button>
+      </form>
+    </div>
+
+    <div class="carte">
+      <h2 style="margin-top:0">Informations de l'eglise</h2>
+      <div class="liste">
+        <div class="element">
+          <div class="infos">
+            <div class="nom">${esc(o.nom)}</div>
+            <div class="detail">Slug : <strong>${esc(o.slug)}</strong></div>
+            <div class="detail">Plan : <strong>${esc(o.plan)}</strong> · Statut : <strong>${esc(o.statut)}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('form-labels').onsubmit = async (e) => {
+    e.preventDefault();
+    const donnees = Object.fromEntries(new FormData(e.target));
+    try {
+      await api.put('/organisations/labels', donnees);
+      etat.org.label_section1 = donnees.label_section1;
+      etat.org.label_section2 = donnees.label_section2;
+      toast('Noms des sections mis a jour !');
+      await router();
+    } catch (err) { toast(err.message, true); }
   };
 }

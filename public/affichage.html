@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#6366f1">
   <title>ZAURA — Versets en direct</title>
-  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f766e 0%, #115e59 50%, #0c4a46 100%);
+      background: linear-gradient(165deg, #312e81 0%, #6366f1 30%, #a855f7 65%, #ec4899 100%);
       color: #fff;
       min-height: 100vh;
       display: flex;
@@ -20,77 +20,40 @@
       padding: 40px;
       text-align: center;
     }
-    .logo {
-      width: 64px; height: 64px; border-radius: 14px;
-      margin-bottom: 12px; opacity: .7;
-    }
-    .attente {
-      font-size: 1.3rem; color: rgba(255,255,255,.5);
-      font-style: italic;
-    }
+    .logo { width: 64px; height: 64px; border-radius: 16px; margin-bottom: 12px; opacity: .7; }
+    .attente { font-size: 1.3rem; color: rgba(255,255,255,.5); font-style: italic; }
     .attente .point { animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.2 } }
-
     .verset { display: none; max-width: 900px; }
     .verset.visible { display: block; animation: apparaitre .6s ease-out; }
-    @keyframes apparaitre {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .reference {
-      font-size: 2.5rem; font-weight: 900; color: #fbbf24;
-      margin-bottom: 20px; text-shadow: 0 2px 8px rgba(0,0,0,.3);
-    }
-    .texte-verset {
-      font-size: 1.8rem; line-height: 1.8; font-style: italic;
-      text-shadow: 0 1px 4px rgba(0,0,0,.2);
-    }
-
-    .barre-bas {
-      position: fixed; bottom: 16px; left: 0; right: 0;
-      display: flex; justify-content: center; gap: 12px;
-      opacity: .4; transition: opacity .3s;
-    }
+    @keyframes apparaitre { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .reference { font-size: 2.5rem; font-weight: 900; color: #fbbf24; margin-bottom: 20px; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .texte-verset { font-size: 1.8rem; line-height: 1.8; font-style: italic; text-shadow: 0 1px 4px rgba(0,0,0,.2); }
+    .barre-bas { position: fixed; bottom: 16px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; opacity: .4; transition: opacity .3s; }
     .barre-bas:hover { opacity: 1; }
-    .barre-bas span {
-      font-size: .8rem; background: rgba(0,0,0,.3);
-      padding: 6px 14px; border-radius: 20px;
-    }
-    .indicateur {
-      width: 8px; height: 8px; border-radius: 50%;
-      display: inline-block; margin-right: 6px;
-    }
+    .barre-bas span { font-size: .8rem; background: rgba(0,0,0,.3); padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(8px); }
+    .indicateur { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     .indicateur.connecte { background: #22c55e; }
     .indicateur.deconnecte { background: #ef4444; }
-
-    @media (max-width: 600px) {
-      body { padding: 20px; }
-      .reference { font-size: 1.6rem; }
-      .texte-verset { font-size: 1.2rem; }
-    }
+    @media (max-width: 600px) { body { padding: 20px; } .reference { font-size: 1.6rem; } .texte-verset { font-size: 1.2rem; } }
   </style>
 </head>
 <body>
   <div id="ecran-attente">
-    <img src="/icons/icon-192.png" alt="VH" class="logo">
+    <img src="/icons/logo.svg" alt="ZAURA" class="logo">
     <div class="attente">En attente du verset<span class="point">...</span></div>
   </div>
-
   <div class="verset" id="ecran-verset">
     <div class="reference" id="ref-verset"></div>
     <div class="texte-verset" id="texte-verset"></div>
   </div>
-
   <div class="barre-bas">
     <span><span class="indicateur connecte" id="ind-statut"></span> <span id="txt-statut">Connecte</span></span>
     <span>ZAURA</span>
   </div>
-
   <script>
     var dernierTimestamp = 0;
     var erreurs = 0;
-
     function verifier() {
       fetch('/api/bible/live')
         .then(function(r) { return r.json(); })
@@ -98,16 +61,12 @@
           erreurs = 0;
           document.getElementById('ind-statut').className = 'indicateur connecte';
           document.getElementById('txt-statut').textContent = 'Connecte';
-
           if (data.timestamp && data.timestamp !== dernierTimestamp && data.reference) {
             dernierTimestamp = data.timestamp;
-
             document.getElementById('ecran-attente').style.display = 'none';
-
             var el = document.getElementById('ecran-verset');
             el.classList.remove('visible');
             void el.offsetWidth;
-
             document.getElementById('ref-verset').textContent = data.reference;
             document.getElementById('texte-verset').textContent = data.texte || '';
             el.classList.add('visible');
@@ -121,16 +80,11 @@
           }
         });
     }
-
     setInterval(verifier, 1500);
     verifier();
-
     document.body.addEventListener('dblclick', function() {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        document.body.requestFullscreen();
-      }
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.body.requestFullscreen();
     });
   </script>
 </body>

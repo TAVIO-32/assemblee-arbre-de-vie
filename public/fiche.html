@@ -3,25 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#6366f1">
   <title>ZAURA — Fiche membre</title>
-  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
   <style>
     :root {
-      --primaire: #0f766e;
-      --primaire-fonce: #0d5d57;
+      --primaire: #7c3aed;
+      --primaire-fonce: #6d28d9;
       --vert: #16a34a;
       --rouge: #dc2626;
-      --fond: #f0fdfa;
-      --texte: #1e293b;
-      --texte-doux: #64748b;
-      --bordure: #e2e8f0;
+      --texte: #1e1b4b;
+      --texte-doux: #6b7280;
+      --bordure: #e5e7eb;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(160deg, var(--primaire) 0%, #115e59 100%);
+      background: linear-gradient(165deg, #312e81 0%, #6366f1 30%, #a855f7 65%, #ec4899 100%);
       color: var(--texte);
       min-height: 100vh;
       display: flex;
@@ -30,44 +29,41 @@
       padding: 20px;
     }
     .boite {
-      background: #fff;
-      border-radius: 16px;
+      background: rgba(255,255,255,.97); backdrop-filter: blur(12px);
+      border-radius: 20px;
       padding: 28px 22px;
       width: 100%;
       max-width: 480px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.15);
+      box-shadow: 0 24px 60px rgba(49,46,129,.3);
     }
-    .marque { text-align: center; font-size: 2.5rem; margin-bottom: 4px; }
+    .marque { text-align: center; margin-bottom: 4px; }
     .logo-z {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 64px; height: 64px; border-radius: 14px;
-      background: var(--primaire); color: #fff;
+      width: 64px; height: 64px; border-radius: 16px;
+      background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); color: #fff;
       font-weight: 900; font-size: 2.2rem;
     }
-    .titre { text-align: center; font-size: 1.4rem; font-weight: 800; color: var(--primaire); margin: 0 0 4px; }
+    .titre { text-align: center; font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .sous-titre { text-align: center; color: var(--texte-doux); font-size: .9rem; margin: 0 0 20px; }
     label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 4px; color: var(--texte); }
     input, select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--bordure);
-      border-radius: 8px;
-      font-size: 1rem;
-      font-family: inherit;
-      background: #fff;
-      color: var(--texte);
+      width: 100%; padding: 12px; border: 1px solid var(--bordure);
+      border-radius: 9px; font-size: 1rem; font-family: inherit;
+      background: #fff; color: var(--texte); transition: border-color .15s, box-shadow .15s;
     }
-    input:focus, select:focus { outline: 2px solid var(--primaire); outline-offset: 1px; border-color: var(--primaire); }
+    input:focus, select:focus { outline: none; border-color: var(--primaire); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
     .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
     @media (max-width: 480px) { .ligne { grid-template-columns: 1fr; } }
     .btn {
       display: block; width: 100%; margin-top: 20px; padding: 14px;
-      border: none; border-radius: 8px; background: var(--primaire);
+      border: none; border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
       color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer;
-      font-family: inherit;
+      font-family: inherit; transition: box-shadow .15s, transform .1s;
     }
-    .btn:hover { background: var(--primaire-fonce); }
-    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .btn:hover { box-shadow: 0 4px 14px rgba(124,58,237,.3); }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
     .succes { text-align: center; padding: 40px 20px; }
     .succes .icone { font-size: 3rem; margin-bottom: 12px; }
     .succes h2 { color: var(--vert); margin: 0 0 8px; }

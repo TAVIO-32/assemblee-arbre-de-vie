@@ -112,6 +112,10 @@ router.get('/me', requireAuth, async (req, res) => {
     ? await db.all(`SELECT id, nom FROM departements WHERE id IN (${db.placeholders(idsDepts.length)}) ORDER BY nom`, ...idsDepts)
     : [];
 
+  const params = await db.all('SELECT cle, valeur FROM parametres WHERE org_id = ?', req.org_id);
+  const labels = {};
+  for (const p of params) labels[p.cle] = p.valeur;
+
   res.json({
     user: {
       ...req.user,
@@ -129,6 +133,8 @@ router.get('/me', requireAuth, async (req, res) => {
       slug: req.org.slug,
       plan: req.org.plan,
       statut: req.org.statut,
+      label_section1: labels.label_section1 || 'Tribus',
+      label_section2: labels.label_section2 || 'Departements',
     },
   });
 });

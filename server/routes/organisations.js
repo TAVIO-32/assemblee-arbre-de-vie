@@ -4,7 +4,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
-const { setSessionCookie } = require('../middleware/auth');
+const { setSessionCookie, requireAuth, requireDirection } = require('../middleware/auth');
 const { PLANS } = require('../constants');
 
 const router = express.Router();
@@ -86,6 +86,33 @@ router.get('/health', async (req, res) => {
   } catch (err) {
     res.status(500).json({ db: db.engine, ok: false, error: err.message });
   }
+});
+
+/** GET /api/organisations/labels — Labels des sections de l'eglise. */
+router.get('/labels', requireAuth, async (req, res) => {
+  const params = await db.all('SELECT cle, valeur FROM parametres WHERE org_id = ?', req.org_id);
+  const labels = {};
+  for (const p of params) if (p.cle.startsWith('label_')) labels[p.cle] = p.valeur;
+  res.json({
+    label_section1: labels.label_section1 || 'Tribus',
+    label_section2: labels.label_section2 || 'Departements',
+  });
+});
+
+/** PUT /api/organisations/labels — Modifier les labels des sections. */
+router.put('/labels', requireAuth, requireDirection, async (req, res) => {
+  const { label_section1, label_section2 } = req.body || {};
+  const upsert = async (cle, valeur) => {
+    if (!valeur) return;
+    const v = String(valeur).trim();
+    if (!v) return;
+    const existe = await db.get('SELECT 1 AS ok FROM parametres WHERE org_id = ? AND cle = ?', req.org_id, cle);
+    if (existe) await db.run('UPDATE parametres SET valeur = ? WHERE org_id = ? AND cle = ?', v, req.org_id, cle);
+    else await db.run('INSERT INTO parametres (org_id, cle, valeur) VALUES (?, ?, ?)', req.org_id, cle, v);
+  };
+  await upsert('label_section1', label_section1);
+  await upsert('label_section2', label_section2);
+  res.json({ ok: true });
 });
 
 module.exports = router;
