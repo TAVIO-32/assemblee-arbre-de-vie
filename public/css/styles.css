@@ -324,6 +324,7 @@ button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .carte-equipe .meneur em { color: var(--ambre); font-style: normal; font-weight: 600; }
 .carte-equipe .chiffres { display: flex; gap: 14px; font-size: .78rem; color: var(--texte-doux); }
 .carte-equipe .chiffres strong { display: block; font-size: 1.15rem; color: var(--texte); font-weight: 800; }
+.carte-selectionnee { background: var(--primaire-pale); border-color: var(--primaire) !important; }
 
 /* ---------- Badges ---------- */
 .badge {

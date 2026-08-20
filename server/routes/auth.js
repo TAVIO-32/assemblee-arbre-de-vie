@@ -116,6 +116,11 @@ router.get('/me', requireAuth, async (req, res) => {
   const labels = {};
   for (const p of params) labels[p.cle] = p.valeur;
 
+  const abonnement = await db.get(
+    "SELECT * FROM abonnements WHERE org_id = ? AND statut = 'actif' ORDER BY date_fin DESC LIMIT 1",
+    req.org_id
+  );
+
   res.json({
     user: {
       ...req.user,
@@ -133,6 +138,8 @@ router.get('/me', requireAuth, async (req, res) => {
       slug: req.org.slug,
       plan: req.org.plan,
       statut: req.org.statut,
+      date_fin_essai: req.org.date_fin_essai || null,
+      abonnement: abonnement ? { plan: abonnement.plan, date_fin: abonnement.date_fin, moyen: abonnement.moyen_paiement } : null,
       label_section1: labels.label_section1 || 'Tribus',
       label_section2: labels.label_section2 || 'Departements',
     },
