@@ -269,7 +269,8 @@ if (engine === 'pg') {
   };
 } else {
   const Database = require('better-sqlite3');
-  const DATA_DIR = path.join(__dirname, '..', 'data');
+  const isVercel = !!process.env.VERCEL;
+  const DATA_DIR = isVercel ? '/tmp' : path.join(__dirname, '..', 'data');
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const sqlite = new Database(path.join(DATA_DIR, 'zaura.db'));
   sqlite.pragma('journal_mode = WAL');
@@ -289,7 +290,8 @@ if (engine === 'pg') {
     async init() {
       for (const nom of ORDRE_TABLES) sqlite.exec(T[nom]);
       for (const idx of INDEX) sqlite.exec(idx);
-      console.log('Base SQLite prete (data/zaura.db).');
+      if (isVercel) console.log('SQLite en mode temporaire (/tmp). Les donnees ne persistent pas entre les redemarrages. Configurez DATABASE_URL pour PostgreSQL.');
+      else console.log('Base SQLite prete (data/zaura.db).');
     },
   };
 }
