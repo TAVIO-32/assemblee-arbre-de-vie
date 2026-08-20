@@ -229,6 +229,7 @@ function elementsNav(u) {
       ['#/fiches', 'Fiches'],
       ['#/versets', 'Versets en direct'],
       ['#/parametres', 'Parametres'],
+      ['#/abonnement', 'Abonnement'],
     );
   } else if (estEncadrant(u)) {
     items.push(['#/accueil', 'Mon tableau de bord']);

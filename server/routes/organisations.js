@@ -114,4 +114,64 @@ router.put('/labels', requireAuth, requireDirection, async (req, res) => {
   await upsert('label_section2', label_section2);
   res.json({ ok: true });
 });
+
+/** GET /api/organisations/abonnement — Info abonnement de l'eglise. */
+router.get('/abonnement', requireAuth, requireDirection, async (req, res) => {
+  const org = req.org;
+  const abonnements = await db.all(
+    'SELECT * FROM abonnements WHERE org_id = ? ORDER BY created_at DESC LIMIT 10',
+    req.org_id
+  );
+  const actif = abonnements.find((a) => a.statut === 'actif');
+
+  let joursRestants = null;
+  if (org.plan === 'essai' && org.date_fin_essai) {
+    const fin = new Date(org.date_fin_essai);
+    const maintenant = new Date();
+    joursRestants = Math.ceil((fin - maintenant) / (1000 * 60 * 60 * 24));
+  } else if (actif) {
+    const fin = new Date(actif.date_fin);
+    const maintenant = new Date();
+    joursRestants = Math.ceil((fin - maintenant) / (1000 * 60 * 60 * 24));
+  }
+
+  res.json({
+    plan: org.plan,
+    statut: org.statut,
+    date_fin_essai: org.date_fin_essai || null,
+    jours_restants: joursRestants,
+    abonnement_actif: actif || null,
+    historique: abonnements,
+    plans: PLANS,
+  });
+});
+
+/** POST /api/organisations/paiement — Soumettre un paiement (en attente de validation admin). */
+router.post('/paiement', requireAuth, requireDirection, async (req, res) => {
+  const { plan, montant, moyen_paiement, reference_paiement } = req.body || {};
+  if (!plan || !moyen_paiement || !reference_paiement) {
+    return res.status(400).json({ error: 'Plan, moyen de paiement et reference sont requis.' });
+  }
+  if (!['mensuel', 'annuel'].includes(plan)) {
+    return res.status(400).json({ error: 'Plan invalide.' });
+  }
+  if (!['wave', 'orange_money', 'mtn_money'].includes(moyen_paiement)) {
+    return res.status(400).json({ error: 'Moyen de paiement invalide.' });
+  }
+
+  const debut = new Date();
+  const fin = new Date();
+  fin.setMonth(fin.getMonth() + (plan === 'annuel' ? 12 : 1));
+
+  await db.insert(`
+    INSERT INTO abonnements (org_id, plan, montant, moyen_paiement, reference_paiement, date_debut, date_fin, statut)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'en_attente')`,
+    req.org_id, plan, Number(montant) || 0,
+    String(moyen_paiement), String(reference_paiement).trim(),
+    debut.toISOString().split('T')[0], fin.toISOString().split('T')[0]
+  );
+
+  res.json({ ok: true, message: 'Paiement enregistre. Il sera valide par l\'administrateur sous 24h.' });
+});
+
 module.exports = router;

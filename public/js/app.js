@@ -39,6 +39,7 @@ const ROUTES = [
   { motif: /^#\/mes-demandes$/,       nav: '#/mes-demandes',  acces: () => true,   vue: vueMesDemandes },
   { motif: /^#\/profil$/,             nav: '#/profil',        acces: () => true,   vue: vueProfil },
   { motif: /^#\/parametres$/,         nav: '#/parametres',    acces: estDirection, vue: vueParametres },
+  { motif: /^#\/abonnement$/,         nav: '#/abonnement',    acces: estDirection, vue: vueAbonnement },
 ];
 
 async function router() {

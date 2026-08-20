@@ -77,7 +77,7 @@ const PLANS = {
 };
 
 const STATUTS_ORG = ['essai', 'actif', 'suspendu', 'expire'];
-const MOYENS_PAIEMENT = ['wave', 'orange_money'];
+const MOYENS_PAIEMENT = ['wave', 'orange_money', 'mtn_money'];
 
 function niveauRole(role) {
   return ROLES[role] ? ROLES[role].niveau : 0;

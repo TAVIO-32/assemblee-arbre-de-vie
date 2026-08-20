@@ -20,6 +20,8 @@ async function vueAccueilDirection(vue) {
     <p class="sous-titre">Vue d'ensemble : ${nombre(e.fideles_actifs)} membre(s),
       ${nombre(e.tribus)} ${lbl1.toLowerCase()}, ${nombre(e.departements)} ${lbl2.toLowerCase()}.</p>
 
+    ${banniereAbonnement()}
+
     ${e.comptes_en_attente ? `<div class="encart-attention">⏳ <strong>${e.comptes_en_attente}</strong>
       compte(s) en attente de validation — <a href="#/validations">valider maintenant</a></div>` : ''}
     ${e.sans_tribu ? `<div class="encart-info">👥 <strong>${e.sans_tribu}</strong> membre(s) actif(s)
@@ -1166,5 +1168,267 @@ async function vueParametres(vue) {
       toast('Noms des sections mis a jour !');
       await router();
     } catch (err) { toast(err.message, true); }
+  };
+}
+
+/* ============ Banniere d'expiration ============ */
+
+function banniereAbonnement() {
+  const o = etat.org;
+  if (!o) return '';
+
+  if (o.plan === 'essai' && o.date_fin_essai) {
+    const fin = new Date(o.date_fin_essai);
+    const maintenant = new Date();
+    const jours = Math.ceil((fin - maintenant) / (1000 * 60 * 60 * 24));
+    if (jours <= 0) {
+      return `<div class="encart-alerte" style="border-left:4px solid #dc2626">
+        <strong>Votre essai gratuit est termine.</strong>
+        Souscrivez un abonnement pour continuer a utiliser ZAURA.
+        <a href="#/abonnement" style="margin-left:8px;font-weight:700">Voir les plans</a>
+      </div>`;
+    }
+    if (jours <= 5) {
+      return `<div class="encart-attention" style="border-left:4px solid #f59e0b">
+        <strong>Il vous reste ${jours} jour(s) d'essai gratuit.</strong>
+        <a href="#/abonnement" style="margin-left:8px;font-weight:700">S'abonner maintenant</a>
+      </div>`;
+    }
+    return `<div class="encart-info">
+      Essai gratuit : <strong>${jours} jour(s) restant(s)</strong> —
+      <a href="#/abonnement">Voir les plans d'abonnement</a>
+    </div>`;
+  }
+
+  if (o.abonnement && o.abonnement.date_fin) {
+    const fin = new Date(o.abonnement.date_fin);
+    const maintenant = new Date();
+    const jours = Math.ceil((fin - maintenant) / (1000 * 60 * 60 * 24));
+    if (jours <= 0) {
+      return `<div class="encart-alerte" style="border-left:4px solid #dc2626">
+        <strong>Votre abonnement a expire.</strong>
+        <a href="#/abonnement" style="margin-left:8px;font-weight:700">Renouveler</a>
+      </div>`;
+    }
+    if (jours <= 7) {
+      return `<div class="encart-attention" style="border-left:4px solid #f59e0b">
+        Votre abonnement expire dans <strong>${jours} jour(s)</strong>.
+        <a href="#/abonnement" style="margin-left:8px;font-weight:700">Renouveler</a>
+      </div>`;
+    }
+  }
+
+  return '';
+}
+
+/* ============ Abonnement ============ */
+
+async function vueAbonnement(vue) {
+  const r = await api.get('/organisations/abonnement');
+  const o = etat.org || {};
+  const plans = r.plans || {};
+  const jours = r.jours_restants;
+  const estEssai = r.plan === 'essai';
+
+  const NUMEROS = {
+    wave: '+242 06 XXX XX XX',
+    orange_money: '+242 06 XXX XX XX',
+    mtn_money: '+242 06 XXX XX XX',
+  };
+
+  const nomMoyen = (m) => {
+    if (m === 'wave') return 'Wave';
+    if (m === 'orange_money') return 'Orange Money';
+    if (m === 'mtn_money') return 'MTN Mobile Money';
+    return m;
+  };
+
+  vue.innerHTML = `
+    <h1>Abonnement</h1>
+    <p class="sous-titre">Gerez votre abonnement et choisissez le plan adapte a votre eglise.</p>
+
+    <div class="carte" style="border-left:4px solid ${estEssai ? 'var(--ambre)' : jours !== null && jours <= 7 ? '#dc2626' : 'var(--primaire)'}">
+      <h2 style="margin-top:0">Statut actuel</h2>
+      <div class="grille-stats" style="margin-bottom:0">
+        ${tuile(estEssai ? 'Essai gratuit' : plans[r.plan] ? plans[r.plan].libelle : r.plan, 'Plan actuel', { ton: 'accent' })}
+        ${tuile(jours !== null ? (jours <= 0 ? 'Expire' : jours + ' jour(s)') : '—', 'Jours restants', {
+          ton: jours !== null && jours <= 5 ? 'alerte' : jours !== null && jours <= 14 ? '' : 'bien'
+        })}
+        ${tuile(r.statut === 'actif' ? 'Actif' : r.statut === 'essai' ? 'Essai' : r.statut === 'expire' ? 'Expire' : r.statut, 'Statut', {
+          ton: r.statut === 'actif' || r.statut === 'essai' ? 'bien' : 'alerte'
+        })}
+      </div>
+      ${estEssai && jours !== null && jours > 0 ? `<p class="aide" style="margin:12px 0 0">
+        Votre essai gratuit se termine le <strong>${dateFr(o.date_fin_essai)}</strong>.
+        Choisissez un plan ci-dessous pour continuer apres l'essai.</p>` : ''}
+      ${jours !== null && jours <= 0 ? `<p style="color:#dc2626;font-weight:600;margin:12px 0 0">
+        Votre abonnement a expire. Renouvelez pour retrouver l'acces complet.</p>` : ''}
+    </div>
+
+    <h2>Plans disponibles</h2>
+    <div class="grille-cartes" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+      <div class="carte ${r.plan === 'essai' ? 'carte-selectionnee' : ''}" style="text-align:center;padding:24px">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--primaire)">Essai gratuit</div>
+        <div style="font-size:2rem;font-weight:900;margin:12px 0">0 FCFA</div>
+        <div class="aide">14 jours pour decouvrir ZAURA</div>
+        <ul style="text-align:left;margin:16px 0;padding-left:20px;font-size:.9rem">
+          <li>Toutes les fonctionnalites</li>
+          <li>Jusqu'a 50 membres</li>
+          <li>Support par email</li>
+        </ul>
+        ${r.plan === 'essai' ? '<div class="badge badge-teal" style="font-size:.85rem">Plan actuel</div>' : ''}
+      </div>
+
+      <div class="carte ${r.plan === 'mensuel' ? 'carte-selectionnee' : ''}" style="text-align:center;padding:24px;border:2px solid var(--primaire)">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--primaire)">Mensuel</div>
+        <div style="font-size:2rem;font-weight:900;margin:12px 0">5 000 <span style="font-size:1rem">FCFA/mois</span></div>
+        <div class="aide">Paiement flexible chaque mois</div>
+        <ul style="text-align:left;margin:16px 0;padding-left:20px;font-size:.9rem">
+          <li>Membres illimites</li>
+          <li>Toutes les fonctionnalites</li>
+          <li>Support prioritaire</li>
+        </ul>
+        ${r.plan === 'mensuel' ? '<div class="badge badge-teal" style="font-size:.85rem">Plan actuel</div>'
+          : '<button class="btn-bloc btn-choisir-plan" data-plan="mensuel" data-prix="5000">Choisir ce plan</button>'}
+      </div>
+
+      <div class="carte ${r.plan === 'annuel' ? 'carte-selectionnee' : ''}" style="text-align:center;padding:24px;position:relative;border:2px solid var(--primaire)">
+        <div style="position:absolute;top:-12px;right:16px;background:var(--gradient-vif);color:#fff;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700">2 mois offerts</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--primaire)">Annuel</div>
+        <div style="font-size:2rem;font-weight:900;margin:12px 0">50 000 <span style="font-size:1rem">FCFA/an</span></div>
+        <div class="aide">Economisez 10 000 FCFA par an</div>
+        <ul style="text-align:left;margin:16px 0;padding-left:20px;font-size:.9rem">
+          <li>Membres illimites</li>
+          <li>Toutes les fonctionnalites</li>
+          <li>Support prioritaire</li>
+        </ul>
+        ${r.plan === 'annuel' ? '<div class="badge badge-teal" style="font-size:.85rem">Plan actuel</div>'
+          : '<button class="btn-bloc btn-choisir-plan" data-plan="annuel" data-prix="50000">Choisir ce plan</button>'}
+      </div>
+    </div>
+
+    <div id="zone-paiement" style="display:none;margin-top:24px">
+      <h2>Payer par mobile money</h2>
+      <div class="carte">
+        <p class="aide" style="margin-bottom:16px">Choisissez votre moyen de paiement et suivez les instructions.</p>
+
+        <div id="info-plan-choisi" style="background:var(--primaire-pale);padding:12px 16px;border-radius:8px;margin-bottom:16px">
+          <strong>Plan choisi :</strong> <span id="txt-plan">—</span> ·
+          <strong>Montant :</strong> <span id="txt-prix">—</span> FCFA
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+          <button class="btn-moyen" data-moyen="wave"
+            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
+            <div style="font-size:1.6rem">🌊</div>
+            <div style="font-weight:700;margin-top:4px">Wave</div>
+          </button>
+          <button class="btn-moyen" data-moyen="orange_money"
+            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
+            <div style="font-size:1.6rem">🟠</div>
+            <div style="font-weight:700;margin-top:4px">Orange Money</div>
+          </button>
+          <button class="btn-moyen" data-moyen="mtn_money"
+            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
+            <div style="font-size:1.6rem">🟡</div>
+            <div style="font-weight:700;margin-top:4px">MTN Money</div>
+          </button>
+        </div>
+
+        <div id="instructions-paiement" style="display:none">
+          <div class="encart-info" style="border-left:4px solid var(--primaire)">
+            <strong>Instructions :</strong>
+            <ol style="margin:8px 0 0;padding-left:20px" id="etapes-paiement"></ol>
+          </div>
+          <div style="margin-top:16px">
+            <label>Reference du paiement (numero de transaction)</label>
+            <input id="ref-paiement" placeholder="ex. TXN123456789" style="margin-bottom:12px">
+            <button class="btn-bloc" id="btn-confirmer-paiement">Confirmer le paiement</button>
+          </div>
+          <p class="aide" style="margin-top:8px">Apres confirmation, votre abonnement sera active sous 24h
+            par l'administrateur ZAURA.</p>
+        </div>
+      </div>
+    </div>
+
+    ${r.historique && r.historique.length ? `
+    <h2>Historique des paiements</h2>
+    <div class="carte conteneur-table"><table>
+      <thead><tr>
+        <th>Plan</th><th>Montant</th><th>Moyen</th><th>Reference</th><th>Debut</th><th>Fin</th><th>Statut</th>
+      </tr></thead>
+      <tbody>${r.historique.map((a) => `<tr>
+        <td>${esc(plans[a.plan] ? plans[a.plan].libelle : a.plan)}</td>
+        <td class="numerique">${nombre(a.montant)} FCFA</td>
+        <td>${esc(nomMoyen(a.moyen_paiement))}</td>
+        <td>${esc(a.reference_paiement || '—')}</td>
+        <td>${dateFr(a.date_debut)}</td>
+        <td>${dateFr(a.date_fin)}</td>
+        <td>${a.statut === 'actif' ? '<span class="badge badge-teal">Actif</span>' : esc(a.statut)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : ''}
+
+    <div class="encart-info" style="margin-top:24px">
+      <strong>Besoin d'aide ?</strong> Contactez l'equipe ZAURA pour toute question sur votre abonnement.
+    </div>`;
+
+  let planChoisi = '';
+  let prixChoisi = 0;
+  let moyenChoisi = '';
+
+  vue.querySelectorAll('.btn-choisir-plan').forEach((btn) => {
+    btn.onclick = () => {
+      planChoisi = btn.dataset.plan;
+      prixChoisi = Number(btn.dataset.prix);
+      document.getElementById('zone-paiement').style.display = '';
+      document.getElementById('txt-plan').textContent = planChoisi === 'mensuel' ? 'Mensuel' : 'Annuel';
+      document.getElementById('txt-prix').textContent = nombre(prixChoisi);
+      document.getElementById('instructions-paiement').style.display = 'none';
+      moyenChoisi = '';
+      vue.querySelectorAll('.btn-moyen').forEach((b) => b.style.borderColor = 'var(--bordure)');
+      document.getElementById('zone-paiement').scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+
+  vue.querySelectorAll('.btn-moyen').forEach((btn) => {
+    btn.onclick = () => {
+      moyenChoisi = btn.dataset.moyen;
+      vue.querySelectorAll('.btn-moyen').forEach((b) => b.style.borderColor = 'var(--bordure)');
+      btn.style.borderColor = 'var(--primaire)';
+
+      const etapes = document.getElementById('etapes-paiement');
+      const nom = nomMoyen(moyenChoisi);
+      const numero = NUMEROS[moyenChoisi] || 'XX XXX XX XX';
+      etapes.innerHTML = `
+        <li>Ouvrez votre application <strong>${esc(nom)}</strong></li>
+        <li>Envoyez <strong>${nombre(prixChoisi)} FCFA</strong> au numero <strong>${esc(numero)}</strong></li>
+        <li>Dans le motif/reference, indiquez : <strong>ZAURA-${esc(o.slug || '').toUpperCase()}</strong></li>
+        <li>Notez le numero de transaction et saisissez-le ci-dessous</li>`;
+      document.getElementById('instructions-paiement').style.display = '';
+    };
+  });
+
+  const btnConfirmer = document.getElementById('btn-confirmer-paiement');
+  if (btnConfirmer) btnConfirmer.onclick = async () => {
+    const ref = document.getElementById('ref-paiement').value.trim();
+    if (!ref) return toast('Veuillez saisir la reference du paiement.', true);
+    if (!moyenChoisi) return toast('Veuillez choisir un moyen de paiement.', true);
+    if (!planChoisi) return toast('Veuillez choisir un plan.', true);
+
+    btnConfirmer.disabled = true;
+    try {
+      await api.post('/organisations/paiement', {
+        plan: planChoisi,
+        montant: prixChoisi,
+        moyen_paiement: moyenChoisi,
+        reference_paiement: ref,
+      });
+      toast('Paiement enregistre ! Votre abonnement sera active sous 24h.');
+      vueAbonnement(vue);
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      btnConfirmer.disabled = false;
+    }
   };
 }
