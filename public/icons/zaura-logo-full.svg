@@ -2,28 +2,23 @@
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#4f46e5"/>
-      <stop offset="100%" stop-color="#9333ea"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#c084fc"/>
-      <stop offset="100%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
     <linearGradient id="txt" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#4f46e5"/>
       <stop offset="60%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
   </defs>
 
-  <!-- Icon - circle -->
-  <circle cx="65" cy="70" r="58" fill="url(#bg)"/>
-  <circle cx="65" cy="70" r="51" fill="none" stroke="#fff" stroke-width="1" opacity="0.12"/>
+  <!-- Icon - rounded square -->
+  <rect x="7" y="12" width="116" height="116" rx="29" fill="url(#bg)"/>
   <!-- Z -->
-  <path d="M38 42 L92 42 L38 98 L92 98" stroke="#fff" stroke-width="9.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Accent dot -->
-  <circle cx="100" cy="32" r="5" fill="url(#accent)"/>
-  <!-- Arc -->
-  <path d="M48 108 Q65 118 82 108" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round"/>
+  <path d="M32 38h46l-40 64h48" stroke="#fff" stroke-width="8.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cross accent -->
+  <line x1="98" y1="22" x2="98" y2="42" stroke="#e9d5ff" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="88" y1="32" x2="108" y2="32" stroke="#e9d5ff" stroke-width="3.5" stroke-linecap="round"/>
 
   <!-- Text ZAURA -->
   <text x="140" y="88" font-family="'Avenir', 'Montserrat', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="68" font-weight="900" letter-spacing="6" fill="url(#txt)">ZAURA</text>
