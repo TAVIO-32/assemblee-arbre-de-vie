@@ -1,7 +1,5 @@
 /**
- * app.js — Application Express (sans listen).
- *
- * Importé par index.js (développement local) et api/index.js (Vercel serverless).
+ * app.js — Application Express ZAURA (sans listen).
  */
 const express = require('express');
 const cookieParser = require('cookie-parser');
@@ -20,6 +18,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/organisations', require('./routes/organisations'));
+app.use('/api/admin', require('./routes/super-admin'));
 app.use('/api/referentiel', require('./routes/referentiel'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));

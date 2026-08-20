@@ -1,14 +1,5 @@
 /**
- * routes/stats.js — Tableaux de bord et statistiques.
- *
- *  /global           corps pastoral : effectifs, rôles, tribus, départements,
- *                    évolution mensuelle, assiduité, alertes
- *  /tribu/:id        patriarche (la sienne) ou corps pastoral
- *  /departement/:id  responsable (le sien) ou corps pastoral
- *  /me               chaque fidèle : ses propres indicateurs
- *
- * Alerte « absences consécutives » : un fidèle dont les 3 derniers pointages
- * (du plus récent au plus ancien) sont « absent » est signalé pour un suivi.
+ * routes/stats.js — Tableaux de bord et statistiques (multi-tenant ZAURA).
  */
 const express = require('express');
 const db = require('../db');
@@ -23,9 +14,6 @@ router.use(requireAuth);
 
 const SEUIL_ABSENCES = 3;
 
-/* ---------------- Briques de calcul ---------------- */
-
-/** Taux de présence (%) sur l'ensemble des pointages correspondant au filtre. */
 async function tauxPresence(where, params = []) {
   const r = await db.get(`
     SELECT COUNT(*) AS total,
@@ -47,7 +35,6 @@ async function tauxPresence(where, params = []) {
   };
 }
 
-/** Évolution mensuelle du taux de présence (12 derniers mois renseignés). */
 async function evolutionMensuelle(where, params = []) {
   const lignes = await db.all(`
     SELECT substr(e.date, 1, 7) AS mois,
@@ -68,10 +55,9 @@ async function evolutionMensuelle(where, params = []) {
       presents: l.presents || 0,
       taux: l.total ? Math.round(((l.presents || 0) / l.total) * 100) : 0,
     }))
-    .reverse(); // du plus ancien au plus récent, pour l'affichage
+    .reverse();
 }
 
-/** Assiduité individuelle des fidèles correspondant au filtre. */
 async function assiduiteMembres(where, params = []) {
   const membres = await db.all(`
     SELECT u.id, u.nom, u.prenom, u.role, u.telephone, u.whatsapp,
@@ -90,10 +76,6 @@ async function assiduiteMembres(where, params = []) {
   }));
 }
 
-/**
- * Fidèles dont les N derniers pointages sont tous « absent ».
- * @param {string} where clause portant sur « u » (users), déjà préfixée AND
- */
 async function membresEnAlerte(clause = '', params = []) {
   const lignes = await db.all(`
     SELECT p.membre_id, p.statut, u.nom, u.prenom, u.whatsapp, u.telephone,
@@ -106,7 +88,6 @@ async function membresEnAlerte(clause = '', params = []) {
     ORDER BY e.date DESC, e.id DESC
   `, ...params);
 
-  // Regroupe les pointages par fidèle (déjà triés du plus récent au plus ancien).
   const parMembre = new Map();
   for (const ligne of lignes) {
     if (!parMembre.has(ligne.membre_id)) parMembre.set(ligne.membre_id, { infos: ligne, statuts: [] });
@@ -127,30 +108,27 @@ async function membresEnAlerte(clause = '', params = []) {
   return alertes;
 }
 
-/* ---------------- Tableau de bord global ---------------- */
-
-/** GET /api/stats/global — vue d'ensemble de l'assemblée (corps pastoral). */
 router.get('/global', requireDirection, async (req, res) => {
+  const oid = req.org_id;
   const effectifs = await db.get(`
     SELECT
-      (SELECT COUNT(*) FROM users WHERE statut = 'actif')        AS fideles_actifs,
-      (SELECT COUNT(*) FROM users WHERE statut = 'en_attente')   AS comptes_en_attente,
-      (SELECT COUNT(*) FROM users WHERE statut = 'actif' AND tribu_id IS NULL) AS sans_tribu,
-      (SELECT COUNT(*) FROM tribus)                              AS tribus,
-      (SELECT COUNT(*) FROM departements)                        AS departements,
-      (SELECT COUNT(*) FROM evenements)                          AS evenements,
-      (SELECT COUNT(*) FROM presences)                           AS pointages,
-      (SELECT COUNT(*) FROM demandes WHERE statut = 'nouveau')   AS demandes_nouvelles,
-      (SELECT COUNT(*) FROM fiches_membres)                       AS fiches_qr,
+      (SELECT COUNT(*) FROM users WHERE org_id = ? AND statut = 'actif')        AS fideles_actifs,
+      (SELECT COUNT(*) FROM users WHERE org_id = ? AND statut = 'en_attente')   AS comptes_en_attente,
+      (SELECT COUNT(*) FROM users WHERE org_id = ? AND statut = 'actif' AND tribu_id IS NULL) AS sans_tribu,
+      (SELECT COUNT(*) FROM tribus WHERE org_id = ?)                            AS tribus,
+      (SELECT COUNT(*) FROM departements WHERE org_id = ?)                      AS departements,
+      (SELECT COUNT(*) FROM evenements WHERE org_id = ?)                        AS evenements,
+      (SELECT COUNT(*) FROM presences p JOIN evenements e ON e.id = p.evenement_id WHERE e.org_id = ?) AS pointages,
+      (SELECT COUNT(*) FROM demandes WHERE org_id = ? AND statut = 'nouveau')   AS demandes_nouvelles,
+      (SELECT COUNT(*) FROM fiches_membres WHERE org_id = ?)                    AS fiches_qr,
       (SELECT COUNT(DISTINCT m.membre_id) FROM membres_departements m
-        JOIN users u ON u.id = m.membre_id WHERE u.statut = 'actif') AS serviteurs,
-      (SELECT COUNT(*) FROM users u2 WHERE u2.statut = 'actif'
+        JOIN users u ON u.id = m.membre_id WHERE u.org_id = ? AND u.statut = 'actif') AS serviteurs,
+      (SELECT COUNT(*) FROM users u2 WHERE u2.org_id = ? AND u2.statut = 'actif'
         AND u2.id NOT IN (SELECT membre_id FROM membres_departements)) AS fideles_simples
-  `);
+  `, oid, oid, oid, oid, oid, oid, oid, oid, oid, oid, oid);
 
-  // Répartition par rôle, dans l'ordre hiérarchique.
   const comptesRoles = await db.all(
-    "SELECT role, COUNT(*) AS nb FROM users WHERE statut = 'actif' GROUP BY role");
+    "SELECT role, COUNT(*) AS nb FROM users WHERE org_id = ? AND statut = 'actif' GROUP BY role", oid);
   const parRole = CODES_ROLES.map((code) => ({
     role: code,
     libelle: ROLES[code].libelle,
@@ -158,49 +136,45 @@ router.get('/global', requireDirection, async (req, res) => {
     nb: (comptesRoles.find((c) => c.role === code) || { nb: 0 }).nb,
   }));
 
-  // Tribus : effectif, patriarche et taux de présence.
   const tribus = await db.all(`
     SELECT t.id, t.nom, t.patriarche_id,
       p.prenom AS patriarche_prenom, p.nom AS patriarche_nom, p.photo AS patriarche_photo,
       (SELECT COUNT(*) FROM users u WHERE u.tribu_id = t.id AND u.statut = 'actif') AS nb_membres
     FROM tribus t LEFT JOIN users p ON p.id = t.patriarche_id
-    ORDER BY t.nom`);
+    WHERE t.org_id = ? ORDER BY t.nom`, oid);
   const parTribu = [];
   for (const t of tribus) {
-    const stats = await tauxPresence('WHERE u.tribu_id = ?', [t.id]);
+    const stats = await tauxPresence('WHERE u.tribu_id = ? AND u.org_id = ?', [t.id, oid]);
     parTribu.push({ ...t, ...stats, taux_presence: stats.taux });
   }
 
-  // Départements : effectif, responsable et taux de présence.
   const departements = await db.all(`
     SELECT d.id, d.nom, d.responsable_id,
       r.prenom AS responsable_prenom, r.nom AS responsable_nom, r.photo AS responsable_photo,
       (SELECT COUNT(*) FROM membres_departements m JOIN users u ON u.id = m.membre_id
         WHERE m.departement_id = d.id AND u.statut = 'actif') AS nb_membres
     FROM departements d LEFT JOIN users r ON r.id = d.responsable_id
-    ORDER BY d.nom`);
+    WHERE d.org_id = ? ORDER BY d.nom`, oid);
   const parDepartement = [];
   for (const d of departements) {
     const stats = await tauxPresence(
-      'WHERE u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?)', [d.id]);
+      'WHERE u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?) AND u.org_id = ?', [d.id, oid]);
     parDepartement.push({ ...d, ...stats, taux_presence: stats.taux });
   }
 
-  const presenceGlobale = await tauxPresence('', []);
-  const membres = await assiduiteMembres("WHERE u.statut = 'actif'");
+  const presenceGlobale = await tauxPresence('WHERE u.org_id = ?', [oid]);
+  const membres = await assiduiteMembres("WHERE u.org_id = ? AND u.statut = 'actif'", [oid]);
   const classes = membres.filter((m) => m.total >= 3).sort((a, b) => b.taux_presence - a.taux_presence);
-  // Les deux palmarès ne doivent jamais citer le même fidèle : sur un petit
-  // effectif, le début et la fin du classement se recouvriraient.
   const plusAssidus = classes.slice(0, 5);
   const dejaCites = new Set(plusAssidus.map((m) => m.id));
   const moinsAssidus = classes.slice().reverse().filter((m) => !dejaCites.has(m.id)).slice(0, 5);
 
   const fichesParTribu = await db.all(`
     SELECT tribu AS nom, COUNT(*) AS nb FROM fiches_membres
-    WHERE tribu != '' GROUP BY tribu`);
+    WHERE org_id = ? AND tribu != '' GROUP BY tribu`, oid);
   const fichesParDept = await db.all(`
     SELECT departement AS nom, COUNT(*) AS nb FROM fiches_membres
-    WHERE departement != '' GROUP BY departement`);
+    WHERE org_id = ? AND departement != '' GROUP BY departement`, oid);
   for (const t of parTribu) {
     const f = fichesParTribu.find((x) => x.nom === t.nom);
     t.nb_fiches_qr = f ? f.nb : 0;
@@ -215,8 +189,8 @@ router.get('/global', requireDirection, async (req, res) => {
            COALESCE(SUM(femmes), 0) AS total_femmes,
            COALESCE(SUM(enfants), 0) AS total_enfants,
            COUNT(*) AS nb_comptages
-    FROM comptages
-  `);
+    FROM comptages c JOIN evenements e ON e.id = c.evenement_id WHERE e.org_id = ?
+  `, oid);
 
   res.json({
     effectifs,
@@ -225,36 +199,29 @@ router.get('/global', requireDirection, async (req, res) => {
     par_role: parRole,
     par_tribu: parTribu,
     par_departement: parDepartement,
-    evolution: await evolutionMensuelle(''),
+    evolution: await evolutionMensuelle('WHERE u.org_id = ?', [oid]),
     plus_assidus: plusAssidus,
     moins_assidus: moinsAssidus,
-    alertes_absences: await membresEnAlerte(),
+    alertes_absences: await membresEnAlerte('AND u.org_id = ?', [oid]),
     comptages,
   });
 });
 
-/* ---------------- Tableau de bord d'une tribu ---------------- */
-
-/** GET /api/stats/tribu/:id — indicateurs d'une tribu (patriarche / corps pastoral). */
 router.get('/tribu/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!peutAccederTribu(req, id)) {
-    return res.status(403).json({ error: 'Cette tribu ne relève pas de votre périmètre.' });
+    return res.status(403).json({ error: 'Cette tribu ne releve pas de votre perimetre.' });
   }
   const tribu = await db.get(`
     SELECT t.*, p.prenom AS patriarche_prenom, p.nom AS patriarche_nom, p.photo AS patriarche_photo
-    FROM tribus t LEFT JOIN users p ON p.id = t.patriarche_id WHERE t.id = ?`, id);
+    FROM tribus t LEFT JOIN users p ON p.id = t.patriarche_id WHERE t.id = ? AND t.org_id = ?`, id, req.org_id);
   if (!tribu) return res.status(404).json({ error: 'Tribu introuvable.' });
 
-  // Deux mesures distinctes, volontairement séparées :
-  //  · presence           = assiduité générale des fidèles de la tribu
-  //    (tous les pointages les concernant, cultes d'assemblée compris) ;
-  //  · presence_activites = présence aux réunions propres à la tribu.
-  const presence = await tauxPresence('WHERE u.tribu_id = ?', [id]);
-  const presenceActivites = await tauxPresence('WHERE u.tribu_id = ? AND e.tribu_id = ?', [id, id]);
-  const membres = await assiduiteMembres("WHERE u.tribu_id = ? AND u.statut = 'actif'", [id]);
+  const oid = req.org_id;
+  const presence = await tauxPresence('WHERE u.tribu_id = ? AND u.org_id = ?', [id, oid]);
+  const presenceActivites = await tauxPresence('WHERE u.tribu_id = ? AND e.tribu_id = ? AND u.org_id = ?', [id, id, oid]);
+  const membres = await assiduiteMembres("WHERE u.tribu_id = ? AND u.statut = 'actif' AND u.org_id = ?", [id, oid]);
 
-  // Derniers événements ayant concerné la tribu (portée tribu ou assemblée).
   const evenements = await db.all(`
     SELECT e.id, e.titre, e.type, e.date, e.portee,
       (SELECT COUNT(*) FROM presences p JOIN users u ON u.id = p.membre_id
@@ -264,9 +231,9 @@ router.get('/tribu/:id', async (req, res) => {
       c.hommes AS comptage_hommes, c.femmes AS comptage_femmes, c.enfants AS comptage_enfants
     FROM evenements e
     LEFT JOIN comptages c ON c.evenement_id = e.id
-    WHERE e.portee = 'assemblee' OR e.tribu_id = ?
+    WHERE e.org_id = ? AND (e.portee = 'assemblee' OR e.tribu_id = ?)
     ORDER BY e.date DESC, e.id DESC LIMIT 10
-  `, id, id, id);
+  `, id, id, oid, id);
 
   res.json({
     tribu,
@@ -276,30 +243,26 @@ router.get('/tribu/:id', async (req, res) => {
     nb_membres: membres.length,
     membres,
     evenements,
-    evolution: await evolutionMensuelle('WHERE u.tribu_id = ?', [id]),
-    alertes_absences: await membresEnAlerte('AND u.tribu_id = ?', [id]),
+    evolution: await evolutionMensuelle('WHERE u.tribu_id = ? AND u.org_id = ?', [id, oid]),
+    alertes_absences: await membresEnAlerte('AND u.tribu_id = ? AND u.org_id = ?', [id, oid]),
   });
 });
 
-/* ---------------- Tableau de bord d'un département ---------------- */
-
-/** GET /api/stats/departement/:id — indicateurs d'un département. */
 router.get('/departement/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!peutAccederDepartement(req, id)) {
-    return res.status(403).json({ error: 'Ce département ne relève pas de votre périmètre.' });
+    return res.status(403).json({ error: 'Ce departement ne releve pas de votre perimetre.' });
   }
   const departement = await db.get(`
     SELECT d.*, r.prenom AS responsable_prenom, r.nom AS responsable_nom, r.photo AS responsable_photo
-    FROM departements d LEFT JOIN users r ON r.id = d.responsable_id WHERE d.id = ?`, id);
-  if (!departement) return res.status(404).json({ error: 'Département introuvable.' });
+    FROM departements d LEFT JOIN users r ON r.id = d.responsable_id WHERE d.id = ? AND d.org_id = ?`, id, req.org_id);
+  if (!departement) return res.status(404).json({ error: 'Departement introuvable.' });
 
+  const oid = req.org_id;
   const appartenance = 'u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?)';
-  // Comme pour les tribus : assiduité générale des membres d'une part,
-  // présence aux activités propres au département d'autre part.
-  const presence = await tauxPresence(`WHERE ${appartenance}`, [id]);
-  const presenceActivites = await tauxPresence(`WHERE ${appartenance} AND e.departement_id = ?`, [id, id]);
-  const membres = await assiduiteMembres(`WHERE ${appartenance} AND u.statut = 'actif'`, [id]);
+  const presence = await tauxPresence(`WHERE ${appartenance} AND u.org_id = ?`, [id, oid]);
+  const presenceActivites = await tauxPresence(`WHERE ${appartenance} AND e.departement_id = ? AND u.org_id = ?`, [id, id, oid]);
+  const membres = await assiduiteMembres(`WHERE ${appartenance} AND u.statut = 'actif' AND u.org_id = ?`, [id, oid]);
 
   const evenements = await db.all(`
     SELECT e.id, e.titre, e.type, e.date, e.portee,
@@ -308,9 +271,9 @@ router.get('/departement/:id', async (req, res) => {
       c.hommes AS comptage_hommes, c.femmes AS comptage_femmes, c.enfants AS comptage_enfants
     FROM evenements e
     LEFT JOIN comptages c ON c.evenement_id = e.id
-    WHERE e.departement_id = ?
+    WHERE e.departement_id = ? AND e.org_id = ?
     ORDER BY e.date DESC, e.id DESC LIMIT 10
-  `, id);
+  `, id, oid);
 
   res.json({
     departement,
@@ -320,19 +283,13 @@ router.get('/departement/:id', async (req, res) => {
     nb_membres: membres.length,
     membres,
     evenements,
-    evolution: await evolutionMensuelle(`WHERE ${appartenance}`, [id]),
-    alertes_absences: await membresEnAlerte(`AND ${appartenance}`, [id]),
+    evolution: await evolutionMensuelle(`WHERE ${appartenance} AND u.org_id = ?`, [id, oid]),
+    alertes_absences: await membresEnAlerte(`AND ${appartenance} AND u.org_id = ?`, [id, oid]),
   });
 });
 
-/* ---------------- Bilans mensuels ---------------- */
-
-/**
- * POST /api/stats/bilan — sauvegarde le bilan du mois (corps pastoral).
- * Corps : { mois: 'AAAA-MM' } (défaut : mois courant)
- * Calcule un snapshot complet et le stocke pour l'historique d'évolution.
- */
 router.post('/bilan', requireDirection, async (req, res) => {
+  const oid = req.org_id;
   const maintenant = new Date();
   const mois = String(req.body?.mois || '').slice(0, 7) ||
     `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}`;
@@ -347,38 +304,38 @@ router.post('/bilan', requireDirection, async (req, res) => {
   const dateFin = moisSuivant + '-01';
 
   const effectifs = await db.get(
-    "SELECT COUNT(*) AS n FROM users WHERE statut = 'actif'");
+    "SELECT COUNT(*) AS n FROM users WHERE org_id = ? AND statut = 'actif'", oid);
 
   const nouveaux = await db.get(
-    "SELECT COUNT(*) AS n FROM users WHERE statut = 'actif' AND created_at >= ? AND created_at < ?",
-    dateDebut, dateFin);
+    "SELECT COUNT(*) AS n FROM users WHERE org_id = ? AND statut = 'actif' AND created_at >= ? AND created_at < ?",
+    oid, dateDebut, dateFin);
 
   const evenements = await db.get(
-    'SELECT COUNT(*) AS n FROM evenements WHERE date >= ? AND date < ?',
-    dateDebut, dateFin);
+    'SELECT COUNT(*) AS n FROM evenements WHERE org_id = ? AND date >= ? AND date < ?',
+    oid, dateDebut, dateFin);
 
   const cultes = await db.get(
-    "SELECT COUNT(*) AS n FROM evenements WHERE type = 'culte' AND date >= ? AND date < ?",
-    dateDebut, dateFin);
+    "SELECT COUNT(*) AS n FROM evenements WHERE org_id = ? AND type = 'culte' AND date >= ? AND date < ?",
+    oid, dateDebut, dateFin);
 
   const presence = await tauxPresence(
-    'WHERE e.date >= ? AND e.date < ?', [dateDebut, dateFin]);
+    'WHERE e.org_id = ? AND e.date >= ? AND e.date < ?', [oid, dateDebut, dateFin]);
 
   const comptages = await db.get(`
     SELECT COALESCE(SUM(c.hommes), 0) AS h, COALESCE(SUM(c.femmes), 0) AS f,
            COALESCE(SUM(c.enfants), 0) AS e
     FROM comptages c JOIN evenements ev ON ev.id = c.evenement_id
-    WHERE ev.date >= ? AND ev.date < ?
-  `, dateDebut, dateFin);
+    WHERE ev.org_id = ? AND ev.date >= ? AND ev.date < ?
+  `, oid, dateDebut, dateFin);
 
   const tribus = await db.all(`
     SELECT t.id, t.nom,
       (SELECT COUNT(*) FROM users u WHERE u.tribu_id = t.id AND u.statut = 'actif') AS nb_membres
-    FROM tribus t ORDER BY t.nom`);
+    FROM tribus t WHERE t.org_id = ? ORDER BY t.nom`, oid);
   const parTribu = [];
   for (const t of tribus) {
-    const s = await tauxPresence('WHERE u.tribu_id = ? AND e.date >= ? AND e.date < ?',
-      [t.id, dateDebut, dateFin]);
+    const s = await tauxPresence('WHERE u.tribu_id = ? AND e.date >= ? AND e.date < ? AND u.org_id = ?',
+      [t.id, dateDebut, dateFin, oid]);
     parTribu.push({ id: t.id, nom: t.nom, nb_membres: t.nb_membres, taux: s.taux });
   }
 
@@ -386,21 +343,21 @@ router.post('/bilan', requireDirection, async (req, res) => {
     SELECT d.id, d.nom,
       (SELECT COUNT(*) FROM membres_departements m JOIN users u ON u.id = m.membre_id
         WHERE m.departement_id = d.id AND u.statut = 'actif') AS nb_membres
-    FROM departements d ORDER BY d.nom`);
+    FROM departements d WHERE d.org_id = ? ORDER BY d.nom`, oid);
   const parDept = [];
   for (const d of depts) {
     const s = await tauxPresence(
-      'WHERE u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?) AND e.date >= ? AND e.date < ?',
-      [d.id, dateDebut, dateFin]);
+      'WHERE u.id IN (SELECT membre_id FROM membres_departements WHERE departement_id = ?) AND e.date >= ? AND e.date < ? AND u.org_id = ?',
+      [d.id, dateDebut, dateFin, oid]);
     parDept.push({ id: d.id, nom: d.nom, nb_membres: d.nb_membres, taux: s.taux });
   }
 
   await db.run(`
-    INSERT INTO bilans_mensuels (mois, fideles_actifs, nouveaux_inscrits, nb_evenements,
+    INSERT INTO bilans_mensuels (org_id, mois, fideles_actifs, nouveaux_inscrits, nb_evenements,
       nb_cultes, nb_pointages, taux_presence, comptage_hommes, comptage_femmes,
       comptage_enfants, par_tribu, par_departement, saisi_par)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT (mois)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (org_id, mois)
     DO UPDATE SET fideles_actifs = EXCLUDED.fideles_actifs,
       nouveaux_inscrits = EXCLUDED.nouveaux_inscrits,
       nb_evenements = EXCLUDED.nb_evenements, nb_cultes = EXCLUDED.nb_cultes,
@@ -409,17 +366,16 @@ router.post('/bilan', requireDirection, async (req, res) => {
       comptage_enfants = EXCLUDED.comptage_enfants,
       par_tribu = EXCLUDED.par_tribu, par_departement = EXCLUDED.par_departement,
       saisi_par = EXCLUDED.saisi_par
-  `, mois, effectifs.n, nouveaux.n || 0, evenements.n, cultes.n,
+  `, oid, mois, effectifs.n, nouveaux.n || 0, evenements.n, cultes.n,
      presence.total, presence.taux, comptages.h, comptages.f, comptages.e,
      JSON.stringify(parTribu), JSON.stringify(parDept), req.user.id);
 
   res.json({ ok: true, mois });
 });
 
-/** GET /api/stats/bilans — historique des bilans mensuels (corps pastoral). */
 router.get('/bilans', requireDirection, async (req, res) => {
   const bilans = await db.all(
-    'SELECT * FROM bilans_mensuels ORDER BY mois DESC LIMIT 24');
+    'SELECT * FROM bilans_mensuels WHERE org_id = ? ORDER BY mois DESC LIMIT 24', req.org_id);
   for (const b of bilans) {
     try { b.par_tribu = JSON.parse(b.par_tribu); } catch { b.par_tribu = []; }
     try { b.par_departement = JSON.parse(b.par_departement); } catch { b.par_departement = []; }
@@ -427,9 +383,6 @@ router.get('/bilans', requireDirection, async (req, res) => {
   res.json({ bilans });
 });
 
-/* ---------------- Indicateurs personnels ---------------- */
-
-/** GET /api/stats/me — indicateurs du fidèle connecté. */
 router.get('/me', async (req, res) => {
   const presences = await assiduite(req.user.id);
   const cotisations = await db.get(`
@@ -439,7 +392,6 @@ router.get('/me', async (req, res) => {
     FROM cotisations WHERE membre_id = ?
   `, req.user.id);
 
-  // Position dans sa tribu (motivation, sans classement nominatif).
   let tribu = null;
   if (req.user.tribu_id) {
     const t = await db.get('SELECT nom FROM tribus WHERE id = ?', req.user.tribu_id);

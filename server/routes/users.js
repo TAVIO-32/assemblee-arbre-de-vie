@@ -1,15 +1,5 @@
 /**
- * routes/users.js — Comptes et fiches des fidèles.
- *
- * Périmètres :
- *  - corps pastoral : tous les comptes ; valide, rejette, attribue rôle,
- *    tribu et départements ;
- *  - patriarche / responsable : les fidèles de sa tribu ou de son département,
- *    en consultation (fiche + assiduité) ;
- *  - fidèle : son propre profil uniquement.
- *
- * Règle hiérarchique : on ne peut jamais attribuer — ni modifier — un rôle de
- * niveau supérieur ou égal au sien. Seul le Pasteur Principal y échappe.
+ * routes/users.js — Comptes et fiches des fideles (multi-tenant ZAURA).
  */
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -26,20 +16,15 @@ const {
 const router = express.Router();
 router.use(requireAuth);
 
-/**
- * GET /api/users — liste selon le périmètre.
- * Filtres : ?statut= &role= &tribu_id= &departement_id= &q=
- */
 router.get('/', async (req, res) => {
   let sql = `SELECT ${CHAMPS_PUBLICS} FROM users u ${JOINTURE_TRIBU}`;
-  const conditions = [];
-  const params = [];
+  const conditions = ['u.org_id = ?'];
+  const params = [req.org_id];
 
   const filtre = filtreMembres(req, 'u');
   if (filtre) {
     conditions.push(filtre.sql);
     params.push(...filtre.params);
-    // Hors corps pastoral, seuls les comptes actifs sont visibles.
     conditions.push("u.statut = 'actif'");
   } else if (req.query.statut) {
     conditions.push('u.statut = ?');
@@ -64,17 +49,16 @@ router.get('/', async (req, res) => {
     params.push(motif, motif, motif);
   }
 
-  if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+  sql += ' WHERE ' + conditions.join(' AND ');
   sql += ' ORDER BY u.nom, u.prenom';
   res.json({ users: await avecDepartements(await db.all(sql, ...params)) });
 });
 
-/** PUT /api/users/me — un utilisateur met à jour son propre profil. */
 router.put('/me', async (req, res) => {
   const { nom, prenom, telephone, whatsapp, date_naissance, password } = req.body || {};
-  if (!nom || !prenom) return res.status(400).json({ error: 'Nom et prénom obligatoires.' });
+  if (!nom || !prenom) return res.status(400).json({ error: 'Nom et prenom obligatoires.' });
   if (password && String(password).length < 6) {
-    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' });
+    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caracteres.' });
   }
   await db.run(`
     UPDATE users SET nom = ?, prenom = ?, telephone = ?, whatsapp = ?, date_naissance = ?
@@ -87,18 +71,17 @@ router.put('/me', async (req, res) => {
     await db.run('UPDATE users SET password_hash = ? WHERE id = ?',
       bcrypt.hashSync(String(password), 10), req.user.id);
   }
-  res.json({ ok: true, message: 'Profil mis à jour.' });
+  res.json({ ok: true, message: 'Profil mis a jour.' });
 });
 
-/** GET /api/users/:id — fiche détaillée d'un fidèle (avec assiduité). */
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!(await peutAccederMembre(req, id))) {
-    return res.status(403).json({ error: 'Ce fidèle ne relève pas de votre périmètre.' });
+    return res.status(403).json({ error: 'Ce fidele ne releve pas de votre perimetre.' });
   }
   const membre = await db.get(
-    `SELECT ${CHAMPS_PUBLICS} FROM users u ${JOINTURE_TRIBU} WHERE u.id = ?`, id);
-  if (!membre) return res.status(404).json({ error: 'Fidèle introuvable.' });
+    `SELECT ${CHAMPS_PUBLICS} FROM users u ${JOINTURE_TRIBU} WHERE u.id = ? AND u.org_id = ?`, id, req.org_id);
+  if (!membre) return res.status(404).json({ error: 'Fidele introuvable.' });
 
   const historique = await db.all(`
     SELECT e.titre, e.type, e.date, e.portee, p.statut
@@ -113,79 +96,59 @@ router.get('/:id', async (req, res) => {
   });
 });
 
-/* ----- Actions réservées au corps pastoral ----- */
-
-/** Vérifie qu'on a le droit d'agir sur ce compte et de lui donner ce rôle. */
 async function controlerCible(req, res, roleDemande) {
-  const cible = await db.get('SELECT * FROM users WHERE id = ?', Number(req.params.id));
+  const cible = await db.get('SELECT * FROM users WHERE id = ? AND org_id = ?', Number(req.params.id), req.org_id);
   if (!cible) { res.status(404).json({ error: 'Compte introuvable.' }); return null; }
   if (cible.id !== req.user.id && !peutGererRole(req.user, cible.role)) {
     res.status(403).json({ error: `Vous ne pouvez pas agir sur un compte de niveau ${cible.role}.` });
     return null;
   }
   if (roleDemande !== undefined) {
-    if (!CODES_ROLES.includes(roleDemande)) {
-      res.status(400).json({ error: 'Rôle invalide.' }); return null;
-    }
+    if (!CODES_ROLES.includes(roleDemande)) { res.status(400).json({ error: 'Role invalide.' }); return null; }
     if (!peutGererRole(req.user, roleDemande)) {
-      res.status(403).json({ error: 'Vous ne pouvez pas attribuer un rôle égal ou supérieur au vôtre.' });
+      res.status(403).json({ error: 'Vous ne pouvez pas attribuer un role egal ou superieur au votre.' });
       return null;
     }
   }
   return cible;
 }
 
-/** POST /api/users/:id/valider — active un compte : rôle + tribu + départements. */
 router.post('/:id/valider', requireDirection, async (req, res) => {
   const { role, tribu_id, departement_ids } = req.body || {};
   const cible = await controlerCible(req, res, role);
   if (!cible) return;
-
   if (tribu_id) {
-    const tribu = await db.get('SELECT id FROM tribus WHERE id = ?', Number(tribu_id));
+    const tribu = await db.get('SELECT id FROM tribus WHERE id = ? AND org_id = ?', Number(tribu_id), req.org_id);
     if (!tribu) return res.status(400).json({ error: 'Tribu inconnue.' });
   }
-
   await db.run("UPDATE users SET statut = 'actif', role = ?, tribu_id = ? WHERE id = ?",
     role, tribu_id ? Number(tribu_id) : null, cible.id);
   await definirDepartements(cible.id, departement_ids);
-
-  res.json({ ok: true, message: 'Compte validé et activé.' });
+  res.json({ ok: true, message: 'Compte valide et active.' });
 });
 
-/** POST /api/users/:id/rejeter — refus d'une demande de compte. */
 router.post('/:id/rejeter', requireDirection, async (req, res) => {
   const cible = await controlerCible(req, res);
   if (!cible) return;
-  if (cible.id === req.user.id) {
-    return res.status(400).json({ error: 'Vous ne pouvez pas rejeter votre propre compte.' });
-  }
+  if (cible.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas rejeter votre propre compte.' });
   await db.run("UPDATE users SET statut = 'rejete' WHERE id = ?", cible.id);
   res.json({ ok: true });
 });
 
-/** PUT /api/users/:id — modification du rôle, de la tribu et des départements. */
 router.put('/:id', requireDirection, async (req, res) => {
   const { role, tribu_id, departement_ids } = req.body || {};
   const cible = await controlerCible(req, res, role);
   if (!cible) return;
-
-  // L'assemblée doit toujours conserver un Pasteur Principal.
   if (cible.role === 'pasteur_principal' && role !== 'pasteur_principal') {
     const autres = await db.get(
-      "SELECT COUNT(*) AS n FROM users WHERE role = 'pasteur_principal' AND id != ?", cible.id);
+      "SELECT COUNT(*) AS n FROM users WHERE role = 'pasteur_principal' AND id != ? AND org_id = ?", cible.id, req.org_id);
     if (!autres.n) {
-      return res.status(400).json({
-        error: 'Désignez d\'abord un autre Pasteur Principal avant de retirer ce rôle.',
-      });
+      return res.status(400).json({ error: "Designez d'abord un autre Pasteur Principal." });
     }
   }
-
   await db.run('UPDATE users SET role = ?, tribu_id = ? WHERE id = ?',
     role, tribu_id ? Number(tribu_id) : null, cible.id);
   if (departement_ids !== undefined) await definirDepartements(cible.id, departement_ids);
-
-  // Redevenu simple fidèle : les responsabilités portées sont libérées.
   if (role === 'fidele') {
     await db.run('UPDATE tribus SET patriarche_id = NULL WHERE patriarche_id = ?', cible.id);
     await db.run('UPDATE departements SET responsable_id = NULL WHERE responsable_id = ?', cible.id);
@@ -193,14 +156,10 @@ router.put('/:id', requireDirection, async (req, res) => {
   res.json({ ok: true });
 });
 
-/** DELETE /api/users/:id — suppression d'un compte (Pasteur Principal). */
 router.delete('/:id', requireDirection, async (req, res) => {
   const cible = await controlerCible(req, res);
   if (!cible) return;
-  if (cible.id === req.user.id) {
-    return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' });
-  }
-  // Les responsabilités portées par ce compte sont libérées.
+  if (cible.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' });
   await db.run('UPDATE tribus SET patriarche_id = NULL WHERE patriarche_id = ?', cible.id);
   await db.run('UPDATE departements SET responsable_id = NULL WHERE responsable_id = ?', cible.id);
   await db.run('DELETE FROM users WHERE id = ?', cible.id);

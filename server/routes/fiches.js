@@ -1,3 +1,6 @@
+/**
+ * routes/fiches.js — Fiches QR de nouveaux fideles (multi-tenant ZAURA).
+ */
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
@@ -5,12 +8,17 @@ const { requireAuth, requireDirection } = require('../middleware/auth');
 
 const router = express.Router();
 
-/** POST /api/fiches — soumission publique (pas d'authentification). */
 router.post('/', async (req, res) => {
-  const { nom, prenom, tribu, departement, adresse, date_naissance, telephone } = req.body || {};
+  const { slug, nom, prenom, tribu, departement, adresse, date_naissance, telephone } = req.body || {};
   if (!nom || !prenom) {
-    return res.status(400).json({ error: 'Le nom et le prénom sont obligatoires.' });
+    return res.status(400).json({ error: 'Le nom et le prenom sont obligatoires.' });
   }
+  if (!slug) {
+    return res.status(400).json({ error: 'Eglise non identifiee.' });
+  }
+
+  const org = await db.get('SELECT id FROM organisations WHERE slug = ?', String(slug).trim().toLowerCase());
+  if (!org) return res.status(404).json({ error: 'Eglise introuvable.' });
 
   const nomN = String(nom).trim();
   const prenomN = String(prenom).trim();
@@ -21,19 +29,19 @@ router.post('/', async (req, res) => {
   const telN = String(telephone || '').trim();
 
   await db.insert(`
-    INSERT INTO fiches_membres (nom, prenom, tribu, departement, adresse, date_naissance, telephone)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, nomN, prenomN, tribuN, deptN, adresseN, dateN, telN);
+    INSERT INTO fiches_membres (org_id, nom, prenom, tribu, departement, adresse, date_naissance, telephone)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `, org.id, nomN, prenomN, tribuN, deptN, adresseN, dateN, telN);
 
   let tribuId = null;
   if (tribuN && tribuN !== 'Sans tribu') {
-    const t = await db.get('SELECT id FROM tribus WHERE nom = ?', tribuN);
+    const t = await db.get('SELECT id FROM tribus WHERE org_id = ? AND nom = ?', org.id, tribuN);
     if (t) tribuId = t.id;
   }
 
   let deptId = null;
   if (deptN && deptN !== 'Sans departement') {
-    const d = await db.get('SELECT id FROM departements WHERE nom = ?', deptN);
+    const d = await db.get('SELECT id FROM departements WHERE org_id = ? AND nom = ?', org.id, deptN);
     if (d) deptId = d.id;
   }
 
@@ -41,28 +49,26 @@ router.post('/', async (req, res) => {
   const fakeHash = `$2b$10$${crypto.randomBytes(32).toString('base64').slice(0, 53)}`;
 
   const userId = await db.insert(`
-    INSERT INTO users (nom, prenom, email, telephone, date_naissance,
+    INSERT INTO users (org_id, nom, prenom, email, telephone, date_naissance,
                        password_hash, role, statut, tribu_id)
-    VALUES (?, ?, ?, ?, ?, ?, 'fidele', 'actif', ?)
-  `, nomN, prenomN, fakeEmail, telN, dateN, fakeHash, tribuId);
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'fidele', 'actif', ?)
+  `, org.id, nomN, prenomN, fakeEmail, telN, dateN, fakeHash, tribuId);
 
   if (deptId) {
     await db.run('INSERT INTO membres_departements (membre_id, departement_id) VALUES (?, ?)',
       userId, deptId);
   }
 
-  res.status(201).json({ message: 'Merci ! Vos informations ont bien été enregistrées.' });
+  res.status(201).json({ message: 'Merci ! Vos informations ont bien ete enregistrees.' });
 });
 
-/** GET /api/fiches — liste des fiches (direction uniquement). */
 router.get('/', requireAuth, requireDirection, async (req, res) => {
-  const fiches = await db.all('SELECT * FROM fiches_membres ORDER BY created_at DESC');
+  const fiches = await db.all('SELECT * FROM fiches_membres WHERE org_id = ? ORDER BY created_at DESC', req.org_id);
   res.json({ fiches });
 });
 
-/** DELETE /api/fiches/:id — supprimer une fiche (direction uniquement). */
 router.delete('/:id', requireAuth, requireDirection, async (req, res) => {
-  await db.run('DELETE FROM fiches_membres WHERE id = ?', req.params.id);
+  await db.run('DELETE FROM fiches_membres WHERE id = ? AND org_id = ?', req.params.id, req.org_id);
   res.json({ ok: true });
 });
 

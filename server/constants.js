@@ -1,137 +1,93 @@
 /**
- * constants.js — Référentiel métier de l'Assemblée Arbre de Vie.
+ * constants.js — Referentiel metier ZAURA.
  *
- * Source unique de vérité pour les rôles, la hiérarchie, les tribus et les
- * départements. Le serveur valide toutes les entrées contre ces listes ;
- * l'interface les récupère via GET /api/referentiel (aucune duplication).
+ * Plateforme SaaS multi-eglise : chaque organisation definit ses propres
+ * tribus et departements, mais les roles et la hierarchie sont communs.
  */
 
-/**
- * Hiérarchie pastorale. Le « niveau » ordonne l'autorité :
- *   Pasteur Principal > Pasteur Assistant > Assistant Pasteur > Patriarche
- * Un responsable ne peut jamais attribuer un rôle de niveau supérieur ou égal
- * au sien (seul le Pasteur Principal échappe à cette règle).
- */
 const ROLES = {
   pasteur_principal: {
     libelle: 'Pasteur Principal',
     niveau: 100,
-    description: "Autorité maximale : supervise toute l'assemblée, les tribus et les départements.",
+    description: "Autorite maximale : supervise toute l'assemblee, les tribus et les departements.",
   },
   pasteur_assistant: {
     libelle: 'Pasteur Assistant',
     niveau: 80,
-    description: 'Seconde le Pasteur Principal sur la conduite générale de l\'assemblée.',
+    description: "Seconde le Pasteur Principal sur la conduite generale de l'assemblee.",
   },
   assistant_pasteur: {
     libelle: 'Assistant Pasteur',
     niveau: 60,
-    description: 'Appuie le corps pastoral et suit les tribus et départements.',
+    description: 'Appuie le corps pastoral et suit les tribus et departements.',
   },
   patriarche: {
     libelle: 'Patriarche',
     niveau: 40,
-    description: 'Conduit une tribu : présences, suivi et accompagnement de ses fidèles.',
+    description: 'Conduit une tribu : presences, suivi et accompagnement de ses fideles.',
   },
   responsable_departement: {
-    libelle: 'Responsable de département',
+    libelle: 'Responsable de departement',
     niveau: 30,
-    description: 'Conduit un département : présences et suivi de ses membres.',
+    description: 'Conduit un departement : presences et suivi de ses membres.',
   },
   fidele: {
-    libelle: 'Fidèle',
+    libelle: 'Fidele',
     niveau: 10,
-    description: "Membre de l'assemblée, rattaché à une tribu et à un ou plusieurs départements.",
+    description: "Membre de l'assemblee, rattache a une tribu et a un ou plusieurs departements.",
   },
 };
 
 const CODES_ROLES = Object.keys(ROLES);
-
-/** Corps pastoral : périmètre global sur toute l'assemblée. */
 const ROLES_DIRECTION = ['pasteur_principal', 'pasteur_assistant', 'assistant_pasteur'];
-
-/** Rôles disposant d'une feuille de présence et d'un tableau de bord d'équipe. */
 const ROLES_ENCADREMENT = [...ROLES_DIRECTION, 'patriarche', 'responsable_departement'];
 
-/** Les 6 tribus de l'assemblée (ordre d'affichage). */
-const TRIBUS = ['SIMGAD', 'LEVASE', 'RUDAN', 'JUNEPH', 'JOZABU', 'BENISSII'];
+const TRIBUS_DEFAUT = ['SIMGAD', 'LEVASE', 'RUDAN', 'JUNEPH', 'JOZABU', 'BENISSII'];
 
-/** Les 13 départements de l'assemblée (ordre d'affichage). */
-const DEPARTEMENTS = [
-  'COM',
-  'MRES',
-  'ADN',
-  'EVANGELISATION',
-  'SAINTE SCENE',
-  'GROUPE DE LOUANGE',
-  'ECODIM',
-  'PORTIER',
-  'GESTION DE CULTE',
-  'PROTOCOLE',
-  "MEDECINE D'HONNEUR",
-  'SOCIAL',
-  'INTERCESSION',
+const DEPARTEMENTS_DEFAUT = [
+  'COM', 'MRES', 'ADN', 'EVANGELISATION', 'SAINTE SCENE',
+  'GROUPE DE LOUANGE', 'ECODIM', 'PORTIER', 'GESTION DE CULTE',
+  'PROTOCOLE', "MEDECINE D'HONNEUR", 'SOCIAL', 'INTERCESSION',
 ];
 
-/** Types d'événements pouvant faire l'objet d'une fiche de présence. */
 const TYPES_EVENEMENT = {
-  culte: 'Culte',
-  reunion: 'Réunion',
-  priere: 'Prière',
-  veillee: 'Veillée',
-  repetition: 'Répétition',
-  formation: 'Formation',
-  evangelisation: 'Évangélisation',
-  activite: 'Activité',
+  culte: 'Culte', reunion: 'Reunion', priere: 'Priere',
+  veillee: 'Veillee', repetition: 'Repetition', formation: 'Formation',
+  evangelisation: 'Evangelisation', activite: 'Activite',
 };
 
-/**
- * Portée d'un événement — détermine qui figure sur la fiche de présence :
- *   assemblee    → tous les fidèles actifs
- *   tribu        → les fidèles d'une tribu
- *   departement  → les membres affectés à un département
- */
 const PORTEES = {
-  assemblee: "Toute l'assemblée",
+  assemblee: "Toute l'assemblee",
   tribu: 'Une tribu',
-  departement: 'Un département',
+  departement: 'Un departement',
 };
 
-/** Statuts de pointage — vert / rouge / orange dans l'interface. */
-const STATUTS_PRESENCE = {
-  present: 'Présent',
-  absent: 'Absent',
-  excuse: 'Excusé',
-};
-
+const STATUTS_PRESENCE = { present: 'Present', absent: 'Absent', excuse: 'Excuse' };
 const STATUTS_COMPTE = ['en_attente', 'actif', 'rejete'];
-
 const TYPES_DEMANDE = {
-  priere: 'Sujet de prière',
-  preoccupation: 'Préoccupation',
-  besoin: 'Besoin',
-  autre: 'Autre demande',
+  priere: 'Sujet de priere', preoccupation: 'Preoccupation',
+  besoin: 'Besoin', autre: 'Autre demande',
+};
+const STATUTS_DEMANDE = { nouveau: 'Nouveau', en_cours: 'En cours', traite: 'Traite' };
+
+const PLANS = {
+  essai: { libelle: 'Essai gratuit', duree_jours: 14, prix_mensuel: 0, prix_annuel: 0 },
+  mensuel: { libelle: 'Mensuel', prix: 5000, devise: 'FCFA' },
+  annuel: { libelle: 'Annuel', prix: 50000, devise: 'FCFA', economie: '2 mois offerts' },
 };
 
-const STATUTS_DEMANDE = { nouveau: 'Nouveau', en_cours: 'En cours', traite: 'Traité' };
+const STATUTS_ORG = ['essai', 'actif', 'suspendu', 'expire'];
+const MOYENS_PAIEMENT = ['wave', 'orange_money'];
 
-/** Niveau d'autorité d'un rôle (0 si le rôle est inconnu). */
 function niveauRole(role) {
   return ROLES[role] ? ROLES[role].niveau : 0;
 }
 
 module.exports = {
-  ROLES,
-  CODES_ROLES,
-  ROLES_DIRECTION,
-  ROLES_ENCADREMENT,
-  TRIBUS,
-  DEPARTEMENTS,
-  TYPES_EVENEMENT,
-  PORTEES,
-  STATUTS_PRESENCE,
-  STATUTS_COMPTE,
-  TYPES_DEMANDE,
-  STATUTS_DEMANDE,
+  ROLES, CODES_ROLES, ROLES_DIRECTION, ROLES_ENCADREMENT,
+  TRIBUS_DEFAUT, DEPARTEMENTS_DEFAUT,
+  TYPES_EVENEMENT, PORTEES, STATUTS_PRESENCE, STATUTS_COMPTE,
+  TYPES_DEMANDE, STATUTS_DEMANDE,
+  PLANS, STATUTS_ORG, MOYENS_PAIEMENT,
   niveauRole,
 };

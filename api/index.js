@@ -7,7 +7,7 @@
 const db = require('../server/db');
 const app = require('../server/app');
 
-const ready = db.init().then(() => db.migrer());
+const ready = db.init().then(() => db.creerSuperAdmin());
 
 module.exports = async (req, res) => {
   await ready;
