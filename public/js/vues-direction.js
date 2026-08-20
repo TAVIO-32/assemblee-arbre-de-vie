@@ -1236,11 +1236,26 @@ async function vueAbonnement(vue) {
     mtn_money: '+242 06 XXX XX XX',
   };
 
+  const LOGOS = {
+    wave: `<svg viewBox="0 0 48 48" width="40" height="40" style="display:block;margin:0 auto"><circle cx="24" cy="24" r="24" fill="#1DC3F4"/><path d="M10 28c3-6 6-12 10-12s5 8 8 8 5-6 8-6" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`,
+    orange_money: `<svg viewBox="0 0 48 48" width="40" height="40" style="display:block;margin:0 auto"><circle cx="24" cy="24" r="24" fill="#FF6600"/><text x="24" y="20" text-anchor="middle" fill="#fff" font-size="9" font-weight="800" font-family="sans-serif">Orange</text><text x="24" y="33" text-anchor="middle" fill="#fff" font-size="10" font-weight="900" font-family="sans-serif">Money</text></svg>`,
+    mtn_money: `<svg viewBox="0 0 48 48" width="40" height="40" style="display:block;margin:0 auto"><circle cx="24" cy="24" r="24" fill="#FFCC00"/><text x="24" y="22" text-anchor="middle" fill="#000" font-size="12" font-weight="900" font-family="sans-serif">MTN</text><text x="24" y="34" text-anchor="middle" fill="#000" font-size="8" font-weight="700" font-family="sans-serif">MoMo</text></svg>`,
+  };
+
+  const COULEURS = { wave: '#1DC3F4', orange_money: '#FF6600', mtn_money: '#FFCC00' };
+
   const nomMoyen = (m) => {
     if (m === 'wave') return 'Wave';
     if (m === 'orange_money') return 'Orange Money';
-    if (m === 'mtn_money') return 'MTN Mobile Money';
+    if (m === 'mtn_money') return 'MTN MoMo';
     return m;
+  };
+
+  const ussdCode = (m) => {
+    if (m === 'wave') return '*155#';
+    if (m === 'orange_money') return '#145*2#';
+    if (m === 'mtn_money') return '*126#';
+    return '';
   };
 
   vue.innerHTML = `
@@ -1310,43 +1325,35 @@ async function vueAbonnement(vue) {
     <div id="zone-paiement" style="display:none;margin-top:24px">
       <h2>Payer par mobile money</h2>
       <div class="carte">
-        <p class="aide" style="margin-bottom:16px">Choisissez votre moyen de paiement et suivez les instructions.</p>
-
-        <div id="info-plan-choisi" style="background:var(--primaire-pale);padding:12px 16px;border-radius:8px;margin-bottom:16px">
-          <strong>Plan choisi :</strong> <span id="txt-plan">—</span> ·
-          <strong>Montant :</strong> <span id="txt-prix">—</span> FCFA
+        <div id="info-plan-choisi" style="background:var(--primaire-pale);padding:14px 18px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:.95rem"><strong>Plan :</strong> <span id="txt-plan" style="font-weight:800;color:var(--primaire)">—</span></div>
+          <div style="width:1px;height:24px;background:var(--bordure)"></div>
+          <div style="font-size:.95rem"><strong>Montant :</strong> <span id="txt-prix" style="font-weight:800;color:var(--primaire)">—</span> FCFA</div>
         </div>
 
+        <p style="font-weight:600;margin-bottom:14px;font-size:1rem">Choisissez votre moyen de paiement :</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
-          <button class="btn-moyen" data-moyen="wave"
-            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
-            <div style="font-size:1.6rem">🌊</div>
-            <div style="font-weight:700;margin-top:4px">Wave</div>
-          </button>
-          <button class="btn-moyen" data-moyen="orange_money"
-            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
-            <div style="font-size:1.6rem">🟠</div>
-            <div style="font-weight:700;margin-top:4px">Orange Money</div>
-          </button>
-          <button class="btn-moyen" data-moyen="mtn_money"
-            style="flex:1;min-width:120px;padding:16px;border:2px solid var(--bordure);border-radius:12px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
-            <div style="font-size:1.6rem">🟡</div>
-            <div style="font-weight:700;margin-top:4px">MTN Money</div>
-          </button>
+          ${['wave', 'orange_money', 'mtn_money'].map((m) => `
+          <button class="btn-moyen" data-moyen="${m}"
+            style="flex:1;min-width:110px;padding:14px 10px;border:2px solid var(--bordure);border-radius:14px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
+            ${LOGOS[m]}
+            <div style="font-weight:700;margin-top:8px;font-size:.9rem">${nomMoyen(m)}</div>
+          </button>`).join('')}
         </div>
 
         <div id="instructions-paiement" style="display:none">
-          <div class="encart-info" style="border-left:4px solid var(--primaire)">
-            <strong>Instructions :</strong>
-            <ol style="margin:8px 0 0;padding-left:20px" id="etapes-paiement"></ol>
-          </div>
+          <div id="bloc-instructions" style="border-radius:12px;padding:20px;margin-bottom:20px"></div>
           <div style="margin-top:16px">
-            <label>Reference du paiement (numero de transaction)</label>
-            <input id="ref-paiement" placeholder="ex. TXN123456789" style="margin-bottom:12px">
-            <button class="btn-bloc" id="btn-confirmer-paiement">Confirmer le paiement</button>
+            <label style="font-weight:700">Reference du paiement (numero de transaction)</label>
+            <input id="ref-paiement" placeholder="ex. TXN123456789 ou code recu par SMS" style="margin-bottom:4px;font-size:1rem;padding:12px">
+            <p class="aide" style="margin:0 0 14px">Apres le transfert, vous recevez un SMS de confirmation avec un numero de transaction. Copiez-le ici.</p>
+            <button class="btn-bloc" id="btn-confirmer-paiement" style="font-size:1rem;padding:14px">Confirmer le paiement</button>
           </div>
-          <p class="aide" style="margin-top:8px">Apres confirmation, votre abonnement sera active sous 24h
-            par l'administrateur ZAURA.</p>
+          <div class="encart-info" style="margin-top:14px;border-left:4px solid var(--primaire)">
+            <strong>Que se passe-t-il ensuite ?</strong><br>
+            Votre paiement sera verifie par l'equipe ZAURA sous <strong>24h maximum</strong>.
+            Vous recevrez une notification des que votre abonnement sera active.
+          </div>
         </div>
       </div>
     </div>
@@ -1364,7 +1371,10 @@ async function vueAbonnement(vue) {
         <td>${esc(a.reference_paiement || '—')}</td>
         <td>${dateFr(a.date_debut)}</td>
         <td>${dateFr(a.date_fin)}</td>
-        <td>${a.statut === 'actif' ? '<span class="badge badge-teal">Actif</span>' : esc(a.statut)}</td>
+        <td>${a.statut === 'actif' ? '<span class="badge badge-teal">Actif</span>'
+          : a.statut === 'en_attente' ? '<span class="badge" style="background:#f59e0b;color:#fff">En attente</span>'
+          : a.statut === 'rejete' ? '<span class="badge" style="background:#dc2626;color:#fff">Rejete</span>'
+          : esc(a.statut)}</td>
       </tr>`).join('')}</tbody>
     </table></div>` : ''}
 
@@ -1385,7 +1395,10 @@ async function vueAbonnement(vue) {
       document.getElementById('txt-prix').textContent = nombre(prixChoisi);
       document.getElementById('instructions-paiement').style.display = 'none';
       moyenChoisi = '';
-      vue.querySelectorAll('.btn-moyen').forEach((b) => b.style.borderColor = 'var(--bordure)');
+      vue.querySelectorAll('.btn-moyen').forEach((b) => {
+        b.style.borderColor = 'var(--bordure)';
+        b.style.background = 'var(--fond-carte)';
+      });
       document.getElementById('zone-paiement').scrollIntoView({ behavior: 'smooth' });
     };
   });
@@ -1393,18 +1406,52 @@ async function vueAbonnement(vue) {
   vue.querySelectorAll('.btn-moyen').forEach((btn) => {
     btn.onclick = () => {
       moyenChoisi = btn.dataset.moyen;
-      vue.querySelectorAll('.btn-moyen').forEach((b) => b.style.borderColor = 'var(--bordure)');
-      btn.style.borderColor = 'var(--primaire)';
+      const couleur = COULEURS[moyenChoisi] || 'var(--primaire)';
+      vue.querySelectorAll('.btn-moyen').forEach((b) => {
+        b.style.borderColor = 'var(--bordure)';
+        b.style.background = 'var(--fond-carte)';
+      });
+      btn.style.borderColor = couleur;
+      btn.style.background = couleur + '12';
 
-      const etapes = document.getElementById('etapes-paiement');
       const nom = nomMoyen(moyenChoisi);
       const numero = NUMEROS[moyenChoisi] || 'XX XXX XX XX';
-      etapes.innerHTML = `
-        <li>Ouvrez votre application <strong>${esc(nom)}</strong></li>
-        <li>Envoyez <strong>${nombre(prixChoisi)} FCFA</strong> au numero <strong>${esc(numero)}</strong></li>
-        <li>Dans le motif/reference, indiquez : <strong>ZAURA-${esc(o.slug || '').toUpperCase()}</strong></li>
-        <li>Notez le numero de transaction et saisissez-le ci-dessous</li>`;
+      const ussd = ussdCode(moyenChoisi);
+      const bloc = document.getElementById('bloc-instructions');
+      bloc.style.background = couleur + '15';
+      bloc.style.border = '1px solid ' + couleur + '40';
+      bloc.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          ${LOGOS[moyenChoisi]}
+          <div>
+            <div style="font-weight:800;font-size:1.1rem">Payer avec ${esc(nom)}</div>
+            <div class="aide">Suivez ces etapes pour effectuer votre paiement</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">1</div>
+            <div><strong>Ouvrez ${esc(nom)}</strong><br><span class="aide">Lancez l'application ${esc(nom)} sur votre telephone${ussd ? ' ou composez <strong>' + ussd + '</strong>' : ''}</span></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">2</div>
+            <div><strong>Envoyez ${nombre(prixChoisi)} FCFA</strong><br><span class="aide">Transferez au numero :</span>
+              <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-size:1.2rem;font-weight:900;letter-spacing:1px;display:inline-block">${esc(numero)}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">3</div>
+            <div><strong>Indiquez le motif</strong><br><span class="aide">Dans la reference/motif du transfert, ecrivez :</span>
+              <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-weight:800;font-size:1rem;display:inline-block">ZAURA-${esc(o.slug || '').toUpperCase()}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">4</div>
+            <div><strong>Copiez la reference</strong><br><span class="aide">Apres le transfert, vous recevrez un SMS avec un numero de transaction. Saisissez-le ci-dessous.</span></div>
+          </div>
+        </div>`;
       document.getElementById('instructions-paiement').style.display = '';
+      document.getElementById('instructions-paiement').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
   });
 
