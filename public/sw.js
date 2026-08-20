@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zaura-v6';
+const CACHE_NAME = 'zaura-v7';
 const STATIC = [
   '/',
   '/index.html',
