@@ -1188,7 +1188,7 @@ function banniereAbonnement() {
         <a href="#/abonnement" style="margin-left:8px;font-weight:700">Voir les plans</a>
       </div>`;
     }
-    if (jours <= 5) {
+    if (jours <= 2) {
       return `<div class="encart-attention" style="border-left:4px solid #f59e0b">
         <strong>Il vous reste ${jours} jour(s) d'essai gratuit.</strong>
         <a href="#/abonnement" style="margin-left:8px;font-weight:700">S'abonner maintenant</a>
@@ -1252,7 +1252,7 @@ async function vueAbonnement(vue) {
       <div class="grille-stats" style="margin-bottom:0">
         ${tuile(estEssai ? 'Essai gratuit' : plans[r.plan] ? plans[r.plan].libelle : r.plan, 'Plan actuel', { ton: 'accent' })}
         ${tuile(jours !== null ? (jours <= 0 ? 'Expire' : jours + ' jour(s)') : '—', 'Jours restants', {
-          ton: jours !== null && jours <= 5 ? 'alerte' : jours !== null && jours <= 14 ? '' : 'bien'
+          ton: jours !== null && jours <= 1 ? 'alerte' : jours !== null && jours <= 2 ? '' : 'bien'
         })}
         ${tuile(r.statut === 'actif' ? 'Actif' : r.statut === 'essai' ? 'Essai' : r.statut === 'expire' ? 'Expire' : r.statut, 'Statut', {
           ton: r.statut === 'actif' || r.statut === 'essai' ? 'bien' : 'alerte'
@@ -1270,7 +1270,7 @@ async function vueAbonnement(vue) {
       <div class="carte ${r.plan === 'essai' ? 'carte-selectionnee' : ''}" style="text-align:center;padding:24px">
         <div style="font-size:1.4rem;font-weight:800;color:var(--primaire)">Essai gratuit</div>
         <div style="font-size:2rem;font-weight:900;margin:12px 0">0 FCFA</div>
-        <div class="aide">14 jours pour decouvrir ZAURA</div>
+        <div class="aide">3 jours pour decouvrir ZAURA</div>
         <ul style="text-align:left;margin:16px 0;padding-left:20px;font-size:.9rem">
           <li>Toutes les fonctionnalites</li>
           <li>Jusqu'a 50 membres</li>

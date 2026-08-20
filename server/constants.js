@@ -71,7 +71,7 @@ const TYPES_DEMANDE = {
 const STATUTS_DEMANDE = { nouveau: 'Nouveau', en_cours: 'En cours', traite: 'Traite' };
 
 const PLANS = {
-  essai: { libelle: 'Essai gratuit', duree_jours: 14, prix_mensuel: 0, prix_annuel: 0 },
+  essai: { libelle: 'Essai gratuit', duree_jours: 3, prix_mensuel: 0, prix_annuel: 0 },
   mensuel: { libelle: 'Mensuel', prix: 5000, devise: 'FCFA' },
   annuel: { libelle: 'Annuel', prix: 50000, devise: 'FCFA', economie: '2 mois offerts' },
 };
