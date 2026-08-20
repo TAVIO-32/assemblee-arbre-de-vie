@@ -2,21 +2,15 @@
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#4f46e5"/>
-      <stop offset="100%" stop-color="#9333ea"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#c084fc"/>
-      <stop offset="100%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
   </defs>
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="245" fill="url(#bg)"/>
-  <!-- Inner subtle ring -->
-  <circle cx="256" cy="256" r="220" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.12"/>
-  <!-- Z stylized - thick modern strokes -->
-  <path d="M155 160 L357 160 L155 352 L357 352" stroke="#fff" stroke-width="38" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Accent dot top-right -->
-  <circle cx="380" cy="130" r="18" fill="url(#accent)"/>
-  <!-- Thin arc bottom - community feel -->
-  <path d="M180 390 Q256 430 332 390" stroke="#fff" stroke-width="4" fill="none" opacity="0.35" stroke-linecap="round"/>
+  <!-- Rounded square -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <!-- Z stylized -->
+  <path d="M128 137h197l-171 238h204" stroke="#fff" stroke-width="36" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cross accent top-right -->
+  <line x1="408" y1="76" x2="408" y2="162" stroke="#e9d5ff" stroke-width="15" stroke-linecap="round"/>
+  <line x1="365" y1="119" x2="451" y2="119" stroke="#e9d5ff" stroke-width="15" stroke-linecap="round"/>
 </svg>
