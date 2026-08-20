@@ -763,7 +763,9 @@ const QR = (() => {
 })();
 
 async function vueQRCode(vue) {
-  const lienFiche = location.origin + '/fiche.html';
+  const orgSlug = etat.org ? etat.org.slug : '';
+  const orgNom = etat.org ? etat.org.nom : 'ZAURA';
+  const lienFiche = location.origin + '/fiche.html?slug=' + encodeURIComponent(orgSlug);
   let svgContent;
   try { svgContent = QR.toSvg(lienFiche, 6); }
   catch { svgContent = '<p style="color:var(--rouge)">Impossible de generer le QR code.</p>'; }
@@ -788,7 +790,7 @@ async function vueQRCode(vue) {
       <strong>Comment partager :</strong><br>
       1. Telechargez l'image du QR code ci-dessus<br>
       2. Envoyez-la dans votre groupe WhatsApp avec un message du type :<br>
-      <em>"Scannez ce QR code pour remplir votre fiche membre — Assemblee Arbre de Vie"</em><br>
+      <em>"Scannez ce QR code pour remplir votre fiche membre — ${esc(orgNom)}"</em><br>
       3. Les fiches remplies apparaitront dans l'onglet <a href="#/fiches">Fiches</a>
     </div>`;
 
@@ -804,7 +806,7 @@ async function vueQRCode(vue) {
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
       const a = document.createElement('a');
-      a.download = 'qrcode-vases-dhonneur.png';
+      a.download = 'qrcode-' + (orgSlug || 'zaura') + '.png';
       a.href = canvas.toDataURL('image/png');
       a.click();
     };

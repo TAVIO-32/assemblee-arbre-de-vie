@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f766e">
-  <title>Assemblee Arbre de Vie — Fiche membre</title>
+  <title>ZAURA — Fiche membre</title>
   <link rel="icon" href="/icons/icon-192.png" type="image/png">
   <style>
     :root {
@@ -38,6 +38,12 @@
       box-shadow: 0 8px 30px rgba(0,0,0,.15);
     }
     .marque { text-align: center; font-size: 2.5rem; margin-bottom: 4px; }
+    .logo-z {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 64px; height: 64px; border-radius: 14px;
+      background: var(--primaire); color: #fff;
+      font-weight: 900; font-size: 2.2rem;
+    }
     .titre { text-align: center; font-size: 1.4rem; font-weight: 800; color: var(--primaire); margin: 0 0 4px; }
     .sous-titre { text-align: center; color: var(--texte-doux); font-size: .9rem; margin: 0 0 20px; }
     label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 4px; color: var(--texte); }
@@ -67,98 +73,109 @@
     .succes h2 { color: var(--vert); margin: 0 0 8px; }
     .succes p { color: var(--texte-doux); }
     .erreur-msg { color: var(--rouge); font-size: .85rem; margin-top: 6px; }
+    .chargement { text-align: center; padding: 40px; color: var(--texte-doux); }
   </style>
 </head>
 <body>
   <div class="boite" id="contenu">
-    <div class="marque"><img src="/icons/icon-192.png" alt="VH" style="width:72px;height:72px;border-radius:14px"></div>
-    <div class="titre">Assemblee Arbre de Vie</div>
-    <p class="sous-titre">Remplissez votre fiche pour rejoindre l'assemblee</p>
-    <form id="form-fiche">
-      <div class="ligne">
-        <div>
-          <label>Prenom *</label>
-          <input name="prenom" required placeholder="Votre prenom">
-        </div>
-        <div>
-          <label>Nom *</label>
-          <input name="nom" required placeholder="Votre nom de famille">
-        </div>
-      </div>
-      <label>Telephone</label>
-      <input name="telephone" inputmode="tel" placeholder="+225 07 00 00 00 00">
-      <label>Tribu</label>
-      <select name="tribu">
-        <option value="">-- Choisir votre tribu --</option>
-        <option value="SIMGAD">SIMGAD</option>
-        <option value="JOZABU">JOZABU</option>
-        <option value="JUNEPH">JUNEPH</option>
-        <option value="RUDAN">RUDAN</option>
-        <option value="LEVASE">LEVASE</option>
-        <option value="BENISS">BENISS</option>
-        <option value="Sans tribu">Sans tribu</option>
-      </select>
-      <label>Departement</label>
-      <select name="departement">
-        <option value="">-- Choisir votre departement --</option>
-        <option value="MRES">MRES</option>
-        <option value="COM">COM</option>
-        <option value="ADN">ADN</option>
-        <option value="Evangelisation">Evangelisation</option>
-        <option value="Groupe Louange">Groupe Louange</option>
-        <option value="Portier">Portier</option>
-        <option value="Protocole">Protocole</option>
-        <option value="Medecine d'honneur">Medecine d'honneur</option>
-        <option value="Sainte Scene">Sainte Scene</option>
-        <option value="Intercession">Intercession</option>
-        <option value="Social">Social</option>
-        <option value="Deco">Deco</option>
-        <option value="Logistique">Logistique</option>
-        <option value="Administration">Administration</option>
-        <option value="Gestion de culte">Gestion de culte</option>
-        <option value="Ecodim">Ecodim</option>
-        <option value="Wedding Planner">Wedding Planner</option>
-        <option value="Sans departement">Sans departement</option>
-      </select>
-      <label>Adresse</label>
-      <input name="adresse" placeholder="Votre quartier ou adresse">
-      <label>Date de naissance</label>
-      <input type="date" name="date_naissance">
-      <div id="msg-erreur"></div>
-      <button class="btn" type="submit">Envoyer ma fiche</button>
-    </form>
+    <div class="chargement">Chargement...</div>
   </div>
 
   <script>
-    document.getElementById('form-fiche').onsubmit = async function(e) {
-      e.preventDefault();
-      var btn = e.target.querySelector('button');
-      btn.disabled = true;
-      btn.textContent = 'Envoi en cours...';
-      document.getElementById('msg-erreur').textContent = '';
-      try {
+    var slug = new URLSearchParams(window.location.search).get('slug') || '';
+
+    function afficherFormulaire(orgNom, tribus, departements) {
+      document.getElementById('contenu').innerHTML =
+        '<div class="marque"><span class="logo-z">Z</span></div>' +
+        '<div class="titre">' + esc(orgNom) + '</div>' +
+        '<p class="sous-titre">Remplissez votre fiche pour rejoindre l\'assemblee</p>' +
+        '<form id="form-fiche">' +
+          '<div class="ligne">' +
+            '<div><label>Prenom *</label><input name="prenom" required placeholder="Votre prenom"></div>' +
+            '<div><label>Nom *</label><input name="nom" required placeholder="Votre nom de famille"></div>' +
+          '</div>' +
+          '<label>Telephone</label>' +
+          '<input name="telephone" inputmode="tel" placeholder="+225 07 00 00 00 00">' +
+          '<label>Tribu</label>' +
+          '<select name="tribu">' +
+            '<option value="">-- Choisir votre tribu --</option>' +
+            tribus.map(function(t) { return '<option value="' + esc(t.nom) + '">' + esc(t.nom) + '</option>'; }).join('') +
+          '</select>' +
+          '<label>Departement</label>' +
+          '<select name="departement">' +
+            '<option value="">-- Choisir votre departement --</option>' +
+            departements.map(function(d) { return '<option value="' + esc(d.nom) + '">' + esc(d.nom) + '</option>'; }).join('') +
+          '</select>' +
+          '<label>Adresse</label>' +
+          '<input name="adresse" placeholder="Votre quartier ou adresse">' +
+          '<label>Date de naissance</label>' +
+          '<input type="date" name="date_naissance">' +
+          '<div id="msg-erreur"></div>' +
+          '<button class="btn" type="submit">Envoyer ma fiche</button>' +
+        '</form>';
+
+      document.getElementById('form-fiche').onsubmit = function(e) {
+        e.preventDefault();
+        var btn = e.target.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = 'Envoi en cours...';
+        document.getElementById('msg-erreur').textContent = '';
         var donnees = Object.fromEntries(new FormData(e.target));
-        var res = await fetch('/api/fiches', {
+        donnees.slug = slug;
+        fetch('/api/fiches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(donnees)
+        })
+        .then(function(res) { return res.json().then(function(json) { return { ok: res.ok, json: json }; }); })
+        .then(function(result) {
+          if (!result.ok) throw new Error(result.json.error || 'Une erreur est survenue.');
+          document.getElementById('contenu').innerHTML =
+            '<div class="succes">' +
+              '<div class="icone">&#10004;&#65039;</div>' +
+              '<h2>Merci !</h2>' +
+              '<p>' + result.json.message + '</p>' +
+              '<p style="margin-top:20px;font-size:.85rem;color:#64748b;">Vous pouvez fermer cette page.</p>' +
+            '</div>';
+        })
+        .catch(function(err) {
+          document.getElementById('msg-erreur').innerHTML =
+            '<p class="erreur-msg">' + err.message + '</p>';
+          btn.disabled = false;
+          btn.textContent = 'Envoyer ma fiche';
         });
-        var json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Une erreur est survenue.');
+      };
+    }
+
+    function esc(v) {
+      return String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    if (!slug) {
+      document.getElementById('contenu').innerHTML =
+        '<div class="succes"><div class="icone">&#9888;&#65039;</div>' +
+        '<h2>Lien invalide</h2>' +
+        '<p>Ce formulaire necessite un lien avec le code de l\'eglise (slug). ' +
+        'Demandez un nouveau lien a votre pasteur.</p></div>';
+    } else {
+      Promise.all([
+        fetch('/api/tribus?slug=' + encodeURIComponent(slug)).then(function(r) { return r.json(); }),
+        fetch('/api/departements?slug=' + encodeURIComponent(slug)).then(function(r) { return r.json(); })
+      ])
+      .then(function(results) {
+        var tribus = results[0].tribus || [];
+        var departements = results[1].departements || [];
+        var orgNom = results[0].organisation || 'Eglise';
+        afficherFormulaire(orgNom, tribus, departements);
+      })
+      .catch(function() {
         document.getElementById('contenu').innerHTML =
-          '<div class="succes">' +
-            '<div class="icone">&#10004;&#65039;</div>' +
-            '<h2>Merci !</h2>' +
-            '<p>' + json.message + '</p>' +
-            '<p style="margin-top:20px;font-size:.85rem;color:#64748b;">Vous pouvez fermer cette page.</p>' +
-          '</div>';
-      } catch (err) {
-        document.getElementById('msg-erreur').innerHTML =
-          '<p class="erreur-msg">' + err.message + '</p>';
-        btn.disabled = false;
-        btn.textContent = 'Envoyer ma fiche';
-      }
-    };
+          '<div class="succes"><div class="icone">&#9888;&#65039;</div>' +
+          '<h2>Erreur</h2>' +
+          '<p>Impossible de charger les informations de l\'eglise. Verifiez le lien et reessayez.</p></div>';
+      });
+    }
   </script>
 </body>
 </html>

@@ -1,34 +1,24 @@
 /**
- * core.js — Socle de l'application Assemblée Arbre de Vie.
- *
- *   1. État global et utilitaires
- *   2. Référentiel (rôles, types…) chargé depuis le serveur
- *   3. Composants d'affichage (badges, jauges, barres, colonnes)
- *   4. Coquille : entête + navigation selon le périmètre
- *   5. Écran d'authentification
- *
- * NOTE SÉCURITÉ : l'interface ne fait que refléter les droits ; le vrai
- * contrôle d'accès est appliqué côté serveur sur chaque route de l'API.
+ * core.js — Socle de l'application ZAURA.
  */
 
-/* ============ 1. État global et utilitaires ============ */
+/* ============ 1. Etat global et utilitaires ============ */
 
 const etat = {
-  user: null,          // utilisateur connecté (avec tribu, départements, périmètre)
-  ref: null,           // référentiel métier (/api/referentiel)
-  tribus: [],          // cache des tribus
-  departements: [],    // cache des départements
-  logoUrl: null,       // URL du logo personnalisé (null = emoji par défaut)
+  user: null,
+  org: null,
+  ref: null,
+  tribus: [],
+  departements: [],
+  logoUrl: null,
 };
 
-/** Échappe le HTML pour éviter toute injection dans les gabarits. */
 function esc(valeur) {
   return String(valeur ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-/** Petite notification en bas d'écran. */
 function toast(message, estErreur = false) {
   const t = document.getElementById('toast');
   t.textContent = message;
@@ -37,40 +27,35 @@ function toast(message, estErreur = false) {
   t._timer = setTimeout(() => { t.className = ''; }, 3500);
 }
 
-/** Date AAAA-MM-JJ → JJ/MM/AAAA (affichage français). */
 function dateFr(iso) {
   if (!iso) return '';
   const [a, m, j] = String(iso).slice(0, 10).split('-');
   return j && m && a ? `${j}/${m}/${a}` : iso;
 }
 
-const MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-                     'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const MOIS_COURTS = ['janv.', 'fevr.', 'mars', 'avr.', 'mai', 'juin',
+                     'juil.', 'aout', 'sept.', 'oct.', 'nov.', 'dec.'];
 
-/** « 2026-07 » → « juil. 26 ». */
 function moisFr(aaaaMm) {
   const [a, m] = String(aaaaMm || '').split('-');
   const i = Number(m) - 1;
   return MOIS_COURTS[i] ? `${MOIS_COURTS[i]} ${String(a).slice(2)}` : aaaaMm;
 }
 
-/** Date du jour au format AAAA-MM-JJ (fuseau local). */
 function aujourdhui() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Nombre lisible (séparateur d'espace insécable). */
 function nombre(n) {
   return Number(n || 0).toLocaleString('fr-FR');
 }
 
-/** Pourcentage ou tiret si aucune donnée. */
 function pourcent(taux) {
   return taux === null || taux === undefined ? '—' : taux + '%';
 }
 
-/* ============ 2. Référentiel et caches ============ */
+/* ============ 2. Referentiel et caches ============ */
 
 async function chargerReferentiel() {
   if (!etat.ref) etat.ref = await api.get('/referentiel');
@@ -94,7 +79,6 @@ function niveauRole(code) {
 function estDirection(user = etat.user) {
   return !!(user && user.perimetre && user.perimetre.tout);
 }
-/** L'utilisateur conduit-il au moins une équipe (tribu ou département) ? */
 function estEncadrant(user = etat.user) {
   if (!user || !user.perimetre) return false;
   return user.perimetre.tout
@@ -102,7 +86,6 @@ function estEncadrant(user = etat.user) {
     || user.perimetre.departements.length > 0;
 }
 
-/** Options <select> génériques à partir d'une liste { id, nom }. */
 function urlPhoto(nomFichier) {
   return nomFichier ? `/api/uploads/${nomFichier}` : null;
 }
@@ -120,7 +103,6 @@ function options(liste, selectionne, vide = '') {
     liste.map((o) => `<option value="${o.id}" ${Number(selectionne) === o.id ? 'selected' : ''}>${esc(o.nom)}</option>`).join('');
 }
 
-/** Options de rôles limitées à ce que l'utilisateur peut attribuer. */
 function optionsRoles(selectionne) {
   const monNiveau = niveauRole(etat.user.role);
   const principal = etat.user.role === 'pasteur_principal';
@@ -132,44 +114,33 @@ function optionsRoles(selectionne) {
 
 /* ============ 3. Composants d'affichage ============ */
 
-/** Badge du rôle, teinté selon la place dans la hiérarchie. */
 function badgeRole(code) {
   const n = niveauRole(code);
   const classe = n >= 60 ? 'badge-teal' : n >= 30 ? 'badge-or' : 'badge-gris';
   return `<span class="badge ${classe}">${esc(libelleRole(code))}</span>`;
 }
 
-/** Badge de pointage : couleur + icône + libellé (jamais la couleur seule). */
 const ICONES_PRESENCE = { present: '✓', absent: '✕', excuse: '~' };
 function badgePresence(statut) {
-  if (!statut) return '<span class="badge badge-gris">Non pointé</span>';
+  if (!statut) return '<span class="badge badge-gris">Non pointe</span>';
   const classe = statut === 'present' ? 'badge-vert' : statut === 'absent' ? 'badge-rouge' : 'badge-ambre';
   const libelle = etat.ref ? etat.ref.statuts_presence[statut] : statut;
   return `<span class="badge ${classe}">${ICONES_PRESENCE[statut] || ''} ${esc(libelle)}</span>`;
 }
 
-/**
- * Jauge de taux de présence : barre de magnitude + valeur toujours écrite.
- * Le seuil colore la barre (rouge < 50 %, ambre < 75 %, vert au-delà) ; le
- * pourcentage reste lisible sans la couleur.
- */
 function jauge(taux) {
   if (taux === null || taux === undefined) {
     return '<span class="badge badge-gris">Aucun pointage</span>';
   }
   const classe = taux < 50 ? 'basse' : taux < 75 ? 'moyenne' : 'haute';
   return `<div class="jauge-ligne">
-    <div class="jauge ${classe}" title="${taux}% de présence"><div style="width:${taux}%"></div></div>
+    <div class="jauge ${classe}" title="${taux}% de presence"><div style="width:${taux}%"></div></div>
     <span class="jauge-valeur">${taux}%</span>
   </div>`;
 }
 
-/**
- * Barres de répartition (une seule teinte : c'est une magnitude, pas une
- * identité). `lignes` : [{ etiquette, valeur, appoint? }]
- */
 function barres(lignes) {
-  if (!lignes.length) return '<p class="message-vide">Aucune donnée.</p>';
+  if (!lignes.length) return '<p class="message-vide">Aucune donnee.</p>';
   const max = Math.max(...lignes.map((l) => l.valeur), 1);
   return `<div class="barres">${lignes.map((l) => `
     <div class="barre-ligne">
@@ -181,18 +152,14 @@ function barres(lignes) {
     </div>`).join('')}</div>`;
 }
 
-/**
- * Colonnes d'évolution mensuelle du taux de présence.
- * Série unique → pas de légende ; le titre de la section la nomme.
- */
 function colonnesEvolution(evolution) {
   if (!evolution || !evolution.length) {
-    return '<p class="message-vide">Pas encore assez de pointages pour tracer une évolution.</p>';
+    return '<p class="message-vide">Pas encore assez de pointages pour tracer une evolution.</p>';
   }
   return `
     <div class="colonnes">
       ${evolution.map((e) => `
-        <div class="colonne" title="${moisFr(e.mois)} : ${e.taux}% de présence sur ${e.total} pointage(s)">
+        <div class="colonne" title="${moisFr(e.mois)} : ${e.taux}% de presence sur ${e.total} pointage(s)">
           <span class="val">${e.taux}%</span>
           <div class="tige ${e.total ? '' : 'vide'}" style="height:${Math.max(e.taux, 1)}%"></div>
         </div>`).join('')}
@@ -200,25 +167,23 @@ function colonnesEvolution(evolution) {
     <div class="axe-mois">${evolution.map((e) => `<span>${moisFr(e.mois)}</span>`).join('')}</div>`;
 }
 
-/** Répartition présents / absents / excusés, avec légende écrite. */
 function repartitionPointages(p) {
   if (!p || !p.total) return '';
   const part = (n) => Math.round((n / p.total) * 100);
   return `
     <div class="repartition" role="img"
-         aria-label="${p.presents} présents, ${p.absents} absents, ${p.excuses} excusés">
+         aria-label="${p.presents} presents, ${p.absents} absents, ${p.excuses} excuses">
       ${p.presents ? `<div class="seg-present" style="width:${part(p.presents)}%"></div>` : ''}
       ${p.absents ? `<div class="seg-absent" style="width:${part(p.absents)}%"></div>` : ''}
       ${p.excuses ? `<div class="seg-excuse" style="width:${part(p.excuses)}%"></div>` : ''}
     </div>
     <div class="legende">
-      <span><i style="background:var(--vert)"></i> ${nombre(p.presents)} présents</span>
+      <span><i style="background:var(--vert)"></i> ${nombre(p.presents)} presents</span>
       <span><i style="background:var(--rouge)"></i> ${nombre(p.absents)} absents</span>
-      <span><i style="background:var(--ambre-clair)"></i> ${nombre(p.excuses)} excusés</span>
+      <span><i style="background:var(--ambre-clair)"></i> ${nombre(p.excuses)} excuses</span>
     </div>`;
 }
 
-/** Tuile d'indicateur. */
 function tuile(valeur, libelle, { ton = '', appoint = '' } = {}) {
   return `<div class="stat ${ton}">
     <div class="valeur">${valeur}</div>
@@ -227,12 +192,11 @@ function tuile(valeur, libelle, { ton = '', appoint = '' } = {}) {
   </div>`;
 }
 
-/** Encart des fidèles absents 3 fois de suite. */
 function blocAlertes(alertes, contexte = '') {
   if (!alertes || !alertes.length) return '';
   return `<div class="encart-alerte">
-    🚨 <strong>Suivi recommandé${contexte ? ' — ' + esc(contexte) : ''} :</strong>
-    ${alertes.length} fidèle(s) absent(s) 3 fois de suite —
+    <strong>Suivi recommande${contexte ? ' — ' + esc(contexte) : ''} :</strong>
+    ${alertes.length} fidele(s) absent(s) 3 fois de suite —
     ${alertes.map((a) => `${esc(a.prenom)} ${esc(a.nom)}${a.tribu_nom ? ' (' + esc(a.tribu_nom) + ')' : ''}`).join(', ')}.
   </div>`;
 }
@@ -241,7 +205,6 @@ function blocAlertes(alertes, contexte = '') {
 
 const appEl = document.getElementById('app');
 
-/** Construit le menu à partir du périmètre réel de l'utilisateur. */
 function elementsNav(u) {
   const items = [];
   const p = u.perimetre;
@@ -250,12 +213,12 @@ function elementsNav(u) {
     items.push(
       ['#/accueil', 'Tableau de bord'],
       ['#/validations', 'Validations'],
-      ['#/fideles', 'Fidèles'],
+      ['#/fideles', 'Fideles'],
       ['#/tribus', 'Tribus'],
-      ['#/departements', 'Départements'],
-      ['#/presences', 'Présences'],
+      ['#/departements', 'Departements'],
+      ['#/presences', 'Presences'],
       ['#/statistiques', 'Statistiques'],
-      ['#/evolution', 'Évolution'],
+      ['#/evolution', 'Evolution'],
       ['#/cotisations', 'Cotisations'],
       ['#/demandes', 'Demandes'],
       ['#/annonces', 'Annonces'],
@@ -270,19 +233,19 @@ function elementsNav(u) {
       p.tribus.forEach((t) => items.push([`#/tribus/${t.id}`, t.nom]));
     }
     if (p.departements.length) {
-      items.push(['separateur', p.departements.length > 1 ? 'Mes départements' : 'Mon département']);
+      items.push(['separateur', p.departements.length > 1 ? 'Mes departements' : 'Mon departement']);
       p.departements.forEach((d) => items.push([`#/departements/${d.id}`, d.nom]));
     }
     items.push(['separateur', 'Suivi']);
     items.push(
-      ['#/presences', 'Fiches de présence'],
-      ['#/fideles', 'Mes fidèles'],
+      ['#/presences', 'Fiches de presence'],
+      ['#/fideles', 'Mes fideles'],
       ['#/cotisations', 'Cotisations'],
       ['#/demandes', 'Demandes'],
       ['#/annonces', 'Annonces'],
     );
   } else {
-    items.push(['#/accueil', 'Accueil'], ['#/mes-presences', 'Mes présences']);
+    items.push(['#/accueil', 'Accueil'], ['#/mes-presences', 'Mes presences']);
     if (u.tribu_id) items.push([`#/tribus/${u.tribu_id}`, 'Ma tribu']);
     items.push(['#/mes-cotisations', 'Mes cotisations'], ['#/mes-demandes', 'Mes demandes']);
   }
@@ -292,21 +255,21 @@ function elementsNav(u) {
   return items;
 }
 
-/** Affiche l'entête + navigation, et retourne le conteneur de la vue. */
 function coquille(ancreActive) {
   const u = etat.user;
+  const o = etat.org;
   const rattachement = [u.tribu_nom, ...(u.departements || []).map((d) => d.nom)]
     .filter(Boolean).join(' · ');
 
-  const logoHtml = `<img src="/icons/icon-192.png" alt="VH" class="logo-img">`;
+  const nomEglise = o ? o.nom : 'ZAURA';
 
   appEl.innerHTML = `
     <header class="entete">
-      <div class="logo">${logoHtml} <span>Assemblee Arbre de Vie<small>Suivi des fidèles</small></span></div>
+      <div class="logo"><span class="logo-zaura">Z</span> <span>${esc(nomEglise)}<small>ZAURA</small></span></div>
       <div class="compte">
         <div><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div>
         <div class="role">${esc(libelleRole(u.role))}${rattachement ? ' · ' + esc(rattachement) : ''}</div>
-        <button class="btn-petit btn-secondaire" id="btn-deconnexion">Déconnexion</button>
+        <button class="btn-petit btn-secondaire" id="btn-deconnexion">Deconnexion</button>
       </div>
     </header>
     <div class="disposition">
@@ -315,29 +278,31 @@ function coquille(ancreActive) {
           ? `<span class="separateur-nav">${esc(libelle)}</span>`
           : `<a href="${ancre}" class="${ancre === ancreActive ? 'actif' : ''}">${esc(libelle)}</a>`).join('')}
       </nav>
-      <main class="contenu" id="vue"><p class="message-vide">Chargement…</p></main>
+      <main class="contenu" id="vue"><p class="message-vide">Chargement...</p></main>
     </div>`;
 
   document.getElementById('btn-deconnexion').onclick = async () => {
     await api.post('/auth/logout');
     etat.user = null;
+    etat.org = null;
     location.hash = '';
     afficherAuth();
   };
   return document.getElementById('vue');
 }
 
-/* ============ 5. Écran d'authentification ============ */
+/* ============ 5. Ecran d'authentification multi-tenant ============ */
 
 async function afficherAuth(ongletInitial = 'connexion') {
   appEl.innerHTML = `
     <div class="ecran-auth"><div class="boite-auth">
-      <div class="marque"><img src="/icons/icon-192.png" alt="VH" style="width:64px;height:64px;border-radius:14px"></div>
-      <div class="titre-app">Assemblee Arbre de Vie</div>
-      <p class="sous-titre">Suivi des fidèles, des tribus et des départements</p>
-      <div class="onglets">
+      <div class="marque"><span class="logo-zaura logo-zaura-grand">Z</span></div>
+      <div class="titre-app">ZAURA</div>
+      <p class="sous-titre">Plateforme de gestion pour eglises</p>
+      <div class="onglets onglets-3">
         <button id="ong-connexion">Connexion</button>
         <button id="ong-inscription">Inscription</button>
+        <button id="ong-creation">Creer une eglise</button>
       </div>
       <div id="zone-auth"></div>
     </div></div>`;
@@ -346,35 +311,34 @@ async function afficherAuth(ongletInitial = 'connexion') {
   const boutons = {
     connexion: document.getElementById('ong-connexion'),
     inscription: document.getElementById('ong-inscription'),
+    creation: document.getElementById('ong-creation'),
   };
 
-  // Les listes de tribus et départements alimentent le formulaire d'inscription.
-  let tribus = [];
-  let departements = [];
-  try {
-    [tribus, departements] = await Promise.all([
-      api.get('/tribus').then((r) => r.tribus).catch(() => []),
-      api.get('/departements').then((r) => r.departements).catch(() => []),
-    ]);
-  } catch { /* la lecture publique peut échouer : le formulaire reste utilisable */ }
-
   function afficherOnglet(nom) {
-    boutons.connexion.className = nom === 'connexion' ? 'actif' : '';
-    boutons.inscription.className = nom === 'inscription' ? 'actif' : '';
-    zone.innerHTML = nom === 'connexion'
-      ? gabaritConnexion()
-      : gabaritInscription(tribus, departements);
-    document.getElementById('form-auth').onsubmit = nom === 'connexion'
-      ? soumettreConnexion : soumettreInscription;
+    Object.entries(boutons).forEach(([k, b]) => { b.className = k === nom ? 'actif' : ''; });
+    if (nom === 'connexion') {
+      zone.innerHTML = gabaritConnexion();
+      document.getElementById('form-auth').onsubmit = soumettreConnexion;
+    } else if (nom === 'inscription') {
+      zone.innerHTML = gabaritInscription();
+      document.getElementById('form-auth').onsubmit = soumettreInscription;
+    } else {
+      zone.innerHTML = gabaritCreation();
+      document.getElementById('form-auth').onsubmit = soumettreCreation;
+    }
   }
   boutons.connexion.onclick = () => afficherOnglet('connexion');
   boutons.inscription.onclick = () => afficherOnglet('inscription');
+  boutons.creation.onclick = () => afficherOnglet('creation');
   afficherOnglet(ongletInitial);
 }
 
 function gabaritConnexion() {
   return `<form id="form-auth">
-    <label>Email ou téléphone</label>
+    <label>Identifiant de votre eglise (slug)</label>
+    <input name="slug" required placeholder="ex. assemblee-arbre-de-vie" autocomplete="organization">
+    <p class="aide">Demandez-le a votre pasteur si vous ne le connaissez pas.</p>
+    <label>Email ou telephone</label>
     <input name="identifiant" required autocomplete="username" placeholder="ex. jean@email.com">
     <label>Mot de passe</label>
     <input type="password" name="password" required autocomplete="current-password">
@@ -382,32 +346,60 @@ function gabaritConnexion() {
   </form>`;
 }
 
-function gabaritInscription(tribus, departements) {
-  const listeTribus = tribus.map((t) => `<option value="${esc(t.nom)}">`).join('');
-  const listeDepts = departements.map((d) => `<option value="${esc(d.nom)}">`).join('');
+function gabaritInscription() {
   return `<form id="form-auth">
+    <label>Identifiant de votre eglise (slug) *</label>
+    <input name="slug" required placeholder="ex. assemblee-arbre-de-vie" autocomplete="organization">
+    <p class="aide">Le slug identifie votre eglise sur ZAURA. Demandez-le a votre pasteur.</p>
     <div class="ligne-champs">
-      <div><label>Prénom *</label><input name="prenom" required></div>
+      <div><label>Prenom *</label><input name="prenom" required></div>
       <div><label>Nom *</label><input name="nom" required></div>
     </div>
     <label>Email *</label>
     <input type="email" name="email" required autocomplete="email">
     <div class="ligne-champs">
-      <div><label>Téléphone</label><input name="telephone" inputmode="tel" placeholder="+225…"></div>
-      <div><label>Numéro WhatsApp</label><input name="whatsapp" inputmode="tel" placeholder="+225…"></div>
+      <div><label>Telephone</label><input name="telephone" inputmode="tel" placeholder="+225..."></div>
+      <div><label>Numero WhatsApp</label><input name="whatsapp" inputmode="tel" placeholder="+225..."></div>
     </div>
     <label>Date de naissance</label>
     <input type="date" name="date_naissance">
-    <label>Tribu souhaitée</label>
-    <input name="tribu_souhaitee" list="liste-tribus" placeholder="ex. SIMGAD">
-    <datalist id="liste-tribus">${listeTribus}</datalist>
-    <label>Département souhaité</label>
-    <input name="departement_souhaite" list="liste-depts" placeholder="ex. GROUPE DE LOUANGE">
-    <datalist id="liste-depts">${listeDepts}</datalist>
-    <p class="aide">La tribu et le département sont confirmés par le pasteur lors de la validation.</p>
-    <label>Mot de passe * (6 caractères minimum)</label>
+    <label>Tribu souhaitee</label>
+    <input name="tribu_souhaitee" placeholder="ex. SIMGAD">
+    <label>Departement souhaite</label>
+    <input name="departement_souhaite" placeholder="ex. GROUPE DE LOUANGE">
+    <p class="aide">La tribu et le departement sont confirmes par le pasteur lors de la validation.</p>
+    <label>Mot de passe * (6 caracteres minimum)</label>
     <input type="password" name="password" required minlength="6" autocomplete="new-password">
-    <button class="btn-bloc" type="submit">Créer mon compte</button>
+    <button class="btn-bloc" type="submit">Creer mon compte</button>
+  </form>`;
+}
+
+function gabaritCreation() {
+  return `<form id="form-auth">
+    <div class="encart-info" style="margin-bottom:16px">
+      Creez votre espace eglise sur ZAURA. Vous beneficiez de <strong>14 jours d'essai gratuit</strong>.
+    </div>
+    <label>Nom de votre eglise *</label>
+    <input name="nom_eglise" required placeholder="ex. Assemblee Arbre de Vie">
+    <label>Email de l'eglise *</label>
+    <input type="email" name="email" required placeholder="contact@eglise.com" autocomplete="email">
+    <div class="ligne-champs">
+      <div><label>Telephone</label><input name="telephone" inputmode="tel" placeholder="+225..."></div>
+      <div><label>Adresse</label><input name="adresse" placeholder="Ville, quartier"></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--bordure);margin:18px 0">
+    <p style="font-weight:700;font-size:.9rem;color:var(--texte-doux)">Votre compte Pasteur Principal</p>
+    <div class="ligne-champs">
+      <div><label>Prenom *</label><input name="prenom" required></div>
+      <div><label>Nom *</label><input name="nom" required></div>
+    </div>
+    <label>Mot de passe * (6 caracteres minimum)</label>
+    <input type="password" name="password" required minlength="6" autocomplete="new-password">
+    <button class="btn-bloc" type="submit">Creer mon eglise</button>
+    <p class="aide" style="text-align:center;margin-top:12px">
+      Mensuel : 5 000 FCFA/mois &middot; Annuel : 50 000 FCFA/an (2 mois offerts)<br>
+      Paiement Wave ou Orange Money
+    </p>
   </form>`;
 }
 
@@ -427,7 +419,7 @@ async function soumettreInscription(e) {
   const donnees = Object.fromEntries(new FormData(e.target));
   try {
     const r = await api.post('/auth/register', donnees);
-    if (r.user) {           // premier compte : Pasteur Principal connecté directement
+    if (r.user) {
       await rafraichirSession();
       toast(r.message);
       location.hash = '#/accueil';
@@ -439,10 +431,24 @@ async function soumettreInscription(e) {
   } catch (err) { toast(err.message, true); }
 }
 
-/** Recharge le profil complet (tribu, départements, périmètre) et le référentiel. */
+async function soumettreCreation(e) {
+  e.preventDefault();
+  const donnees = Object.fromEntries(new FormData(e.target));
+  try {
+    const r = await api.post('/organisations/register', donnees);
+    if (r.user) {
+      await rafraichirSession();
+      toast(r.message || 'Eglise creee avec succes !');
+      location.hash = '#/accueil';
+      await router();
+    }
+  } catch (err) { toast(err.message, true); }
+}
+
 async function rafraichirSession() {
   const [me] = await Promise.all([api.get('/auth/me'), chargerReferentiel()]);
   etat.user = me.user;
+  etat.org = me.organisation || null;
   try {
     const r = await fetch('/api/uploads/logo/current', { credentials: 'same-origin' });
     etat.logoUrl = r.ok ? '/api/uploads/logo/current' : null;

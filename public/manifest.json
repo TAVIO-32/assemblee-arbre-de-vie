@@ -1,7 +1,7 @@
 {
-  "name": "Assemblee Arbre de Vie",
-  "short_name": "Assemblee Arbre de Vie",
-  "description": "Suivi des membres — Assemblee Arbre de Vie",
+  "name": "ZAURA — Gestion d'assemblee",
+  "short_name": "ZAURA",
+  "description": "Plateforme de gestion pour eglises et assemblees",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f766e",

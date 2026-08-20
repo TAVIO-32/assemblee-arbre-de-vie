@@ -1,21 +1,18 @@
 /**
- * index.js — Point d'entrée du serveur Assemblée Arbre de Vie.
- *
- * Démarrage : `npm start` (port 3000 par défaut, variable PORT pour changer).
- * En production sur Vercel, c'est api/index.js qui sert de point d'entrée.
+ * index.js — Point d'entree du serveur ZAURA.
  */
 const db = require('./db');
 const app = require('./app');
 
 const PORT = process.env.PORT || 3000;
 db.init()
-  .then(() => db.migrer())
+  .then(() => db.creerSuperAdmin())
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`✅ Assemblée Arbre de Vie — serveur démarré sur http://localhost:${PORT}`);
+      console.log(`ZAURA — serveur demarre sur http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ Impossible d\'initialiser la base de données :', err);
+    console.error('Impossible d\'initialiser la base de donnees :', err);
     process.exit(1);
   });

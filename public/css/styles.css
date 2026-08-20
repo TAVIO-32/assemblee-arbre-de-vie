@@ -1,5 +1,5 @@
 /* ============================================================
-   Assemblée Arbre de Vie — Feuille de style principale
+   ZAURA — Feuille de style principale
    Conception « mobile d'abord » : la mise en page de base cible
    les petits écrans ; les écrans larges (≥ 900 px) passent en
    disposition avec barre latérale.
@@ -11,7 +11,7 @@
    ============================================================ */
 
 :root {
-  --primaire: #0f766e;          /* sarcelle : identité Arbre de Vie */
+  --primaire: #0f766e;          /* sarcelle : identité ZAURA */
   --primaire-fonce: #115e59;
   --primaire-pale: #ecfdf9;
   --primaire-bord: #99f6e4;
@@ -593,3 +593,17 @@ img.avatar { border: 2px solid var(--primaire-bord); }
   text-align: center; font-size: .88rem; color: var(--texte-doux);
   margin-top: 6px; font-weight: 600;
 }
+
+/* ---------- ZAURA : logo et onglets à 3 colonnes ---------- */
+.logo-zaura {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #fff; color: var(--primaire);
+  font-weight: 900; font-size: 1.1rem; letter-spacing: -.5px;
+  flex-shrink: 0;
+}
+.logo-zaura-grand {
+  width: 64px; height: 64px; border-radius: 14px;
+  font-size: 2.2rem;
+}
+.onglets-3 button { flex: 1 1 33.33%; font-size: .82rem; padding: 9px 6px; }
