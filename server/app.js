@@ -33,6 +33,7 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/fiches', require('./routes/fiches'));
 app.use('/api/bible', require('./routes/bible'));
+app.use('/api/wave', require('./routes/wave'));
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 app.use(express.static(PUBLIC_DIR));
