@@ -270,7 +270,7 @@ function coquille(ancreActive) {
 
   appEl.innerHTML = `
     <header class="entete">
-      <div class="logo"><span class="logo-zaura">Z</span> <span>${esc(nomEglise)}<small>ZAURA</small></span></div>
+      <div class="logo"><img src="/icons/zaura-icon.svg" alt="Z" class="logo-icone"> <span>${esc(nomEglise)}<small>ZAURA</small></span></div>
       <div class="compte">
         <div><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div>
         <div class="role">${esc(libelleRole(u.role))}${rattachement ? ' · ' + esc(rattachement) : ''}</div>
@@ -301,7 +301,7 @@ function coquille(ancreActive) {
 async function afficherAuth(ongletInitial = 'connexion') {
   appEl.innerHTML = `
     <div class="ecran-auth"><div class="boite-auth">
-      <div class="marque"><span class="logo-zaura logo-zaura-grand">Z</span></div>
+      <div class="marque"><img src="/icons/zaura-icon.svg" alt="ZAURA" class="logo-auth-icone"></div>
       <div class="titre-app">ZAURA</div>
       <p class="sous-titre">Plateforme de gestion pour eglises</p>
       <div class="onglets onglets-3">
