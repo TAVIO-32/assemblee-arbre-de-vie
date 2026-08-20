@@ -1231,7 +1231,6 @@ async function vueAbonnement(vue) {
   const estEssai = r.plan === 'essai';
 
   const NUMEROS = {
-    wave: '07 19 36 35 81',
     orange_money: '07 19 36 35 81',
     mtn_money: '07 19 36 35 81',
   };
@@ -1333,7 +1332,13 @@ async function vueAbonnement(vue) {
 
         <p style="font-weight:600;margin-bottom:14px;font-size:1rem">Choisissez votre moyen de paiement :</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
-          ${['wave', 'orange_money', 'mtn_money'].map((m) => `
+          <button class="btn-moyen" data-moyen="wave"
+            style="flex:1;min-width:110px;padding:14px 10px;border:2px solid var(--bordure);border-radius:14px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s;position:relative">
+            <div style="position:absolute;top:-8px;right:-4px;background:#10b981;color:#fff;font-size:.65rem;padding:2px 8px;border-radius:10px;font-weight:700">Paiement direct</div>
+            ${LOGOS.wave}
+            <div style="font-weight:700;margin-top:8px;font-size:.9rem">Wave</div>
+          </button>
+          ${['orange_money', 'mtn_money'].map((m) => `
           <button class="btn-moyen" data-moyen="${m}"
             style="flex:1;min-width:110px;padding:14px 10px;border:2px solid var(--bordure);border-radius:14px;background:var(--fond-carte);cursor:pointer;text-align:center;transition:all .2s">
             ${LOGOS[m]}
@@ -1341,7 +1346,36 @@ async function vueAbonnement(vue) {
           </button>`).join('')}
         </div>
 
-        <div id="instructions-paiement" style="display:none">
+        <div id="zone-wave" style="display:none">
+          <div style="border-radius:12px;padding:20px;background:#1DC3F415;border:1px solid #1DC3F440;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              ${LOGOS.wave}
+              <div>
+                <div style="font-weight:800;font-size:1.1rem">Paiement securise via Wave</div>
+                <div class="aide">Vous serez redirige vers Wave pour confirmer le paiement</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="min-width:28px;height:28px;border-radius:50%;background:#1DC3F4;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem">1</div>
+                <span>Cliquez sur <strong>Payer maintenant</strong></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="min-width:28px;height:28px;border-radius:50%;background:#1DC3F4;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem">2</div>
+                <span>Confirmez le paiement sur <strong>votre telephone</strong></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="min-width:28px;height:28px;border-radius:50%;background:#1DC3F4;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem">3</div>
+                <span>Votre abonnement est <strong>active instantanement</strong></span>
+              </div>
+            </div>
+            <button id="btn-wave-payer" class="btn-bloc" style="font-size:1.1rem;padding:16px;background:#1DC3F4;border-color:#1DC3F4">
+              Payer avec Wave
+            </button>
+          </div>
+        </div>
+
+        <div id="zone-manuel" style="display:none">
           <div id="bloc-instructions" style="border-radius:12px;padding:20px;margin-bottom:20px"></div>
           <div style="margin-top:16px">
             <label style="font-weight:700">Reference du paiement (numero de transaction)</label>
@@ -1414,46 +1448,77 @@ async function vueAbonnement(vue) {
       btn.style.borderColor = couleur;
       btn.style.background = couleur + '12';
 
-      const nom = nomMoyen(moyenChoisi);
-      const numero = NUMEROS[moyenChoisi] || 'XX XXX XX XX';
-      const ussd = ussdCode(moyenChoisi);
-      const bloc = document.getElementById('bloc-instructions');
-      bloc.style.background = couleur + '15';
-      bloc.style.border = '1px solid ' + couleur + '40';
-      bloc.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-          ${LOGOS[moyenChoisi]}
-          <div>
-            <div style="font-weight:800;font-size:1.1rem">Payer avec ${esc(nom)}</div>
-            <div class="aide">Suivez ces etapes pour effectuer votre paiement</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:14px">
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">1</div>
-            <div><strong>Ouvrez ${esc(nom)}</strong><br><span class="aide">Lancez l'application ${esc(nom)} sur votre telephone${ussd ? ' ou composez <strong>' + ussd + '</strong>' : ''}</span></div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">2</div>
-            <div><strong>Envoyez ${nombre(prixChoisi)} FCFA</strong><br><span class="aide">Transferez au numero :</span>
-              <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-size:1.2rem;font-weight:900;letter-spacing:1px;display:inline-block">${esc(numero)}</div>
+      const zoneWave = document.getElementById('zone-wave');
+      const zoneManuel = document.getElementById('zone-manuel');
+
+      if (moyenChoisi === 'wave') {
+        zoneWave.style.display = '';
+        zoneManuel.style.display = 'none';
+        zoneWave.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        zoneWave.style.display = 'none';
+        zoneManuel.style.display = '';
+        const nom = nomMoyen(moyenChoisi);
+        const numero = NUMEROS[moyenChoisi] || 'XX XXX XX XX';
+        const ussd = ussdCode(moyenChoisi);
+        const bloc = document.getElementById('bloc-instructions');
+        bloc.style.background = couleur + '15';
+        bloc.style.border = '1px solid ' + couleur + '40';
+        bloc.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            ${LOGOS[moyenChoisi]}
+            <div>
+              <div style="font-weight:800;font-size:1.1rem">Payer avec ${esc(nom)}</div>
+              <div class="aide">Suivez ces etapes pour effectuer votre paiement</div>
             </div>
           </div>
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">3</div>
-            <div><strong>Indiquez le motif</strong><br><span class="aide">Dans la reference/motif du transfert, ecrivez :</span>
-              <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-weight:800;font-size:1rem;display:inline-block">ZAURA-${esc(o.slug || '').toUpperCase()}</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">1</div>
+              <div><strong>Ouvrez ${esc(nom)}</strong><br><span class="aide">Lancez l'application ${esc(nom)} sur votre telephone${ussd ? ' ou composez <strong>' + ussd + '</strong>' : ''}</span></div>
             </div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">4</div>
-            <div><strong>Copiez la reference</strong><br><span class="aide">Apres le transfert, vous recevrez un SMS avec un numero de transaction. Saisissez-le ci-dessous.</span></div>
-          </div>
-        </div>`;
-      document.getElementById('instructions-paiement').style.display = '';
-      document.getElementById('instructions-paiement').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">2</div>
+              <div><strong>Envoyez ${nombre(prixChoisi)} FCFA</strong><br><span class="aide">Transferez au numero :</span>
+                <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-size:1.2rem;font-weight:900;letter-spacing:1px;display:inline-block">${esc(numero)}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">3</div>
+              <div><strong>Indiquez le motif</strong><br><span class="aide">Dans la reference/motif du transfert, ecrivez :</span>
+                <div style="margin-top:6px;padding:8px 14px;background:var(--fond-carte);border-radius:8px;border:1px solid var(--bordure);font-weight:800;font-size:1rem;display:inline-block">ZAURA-${esc(o.slug || '').toUpperCase()}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="min-width:32px;height:32px;border-radius:50%;background:${couleur};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem">4</div>
+              <div><strong>Copiez la reference</strong><br><span class="aide">Apres le transfert, vous recevrez un SMS avec un numero de transaction. Saisissez-le ci-dessous.</span></div>
+            </div>
+          </div>`;
+        zoneManuel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     };
   });
+
+  const btnWave = document.getElementById('btn-wave-payer');
+  if (btnWave) btnWave.onclick = async () => {
+    if (!planChoisi) return toast('Veuillez d\'abord choisir un plan.', true);
+    btnWave.disabled = true;
+    btnWave.textContent = 'Redirection vers Wave...';
+    try {
+      const result = await api.post('/wave/checkout', { plan: planChoisi });
+      if (result.checkout_url) {
+        window.location.href = result.checkout_url;
+      } else {
+        toast('Erreur : impossible de creer la session Wave.', true);
+        btnWave.disabled = false;
+        btnWave.textContent = 'Payer avec Wave';
+      }
+    } catch (err) {
+      toast(err.message || 'Erreur de connexion a Wave.', true);
+      btnWave.disabled = false;
+      btnWave.textContent = 'Payer avec Wave';
+    }
+  };
 
   const btnConfirmer = document.getElementById('btn-confirmer-paiement');
   if (btnConfirmer) btnConfirmer.onclick = async () => {
@@ -1478,4 +1543,12 @@ async function vueAbonnement(vue) {
       btnConfirmer.disabled = false;
     }
   };
+
+  if (window.location.hash.includes('paiement=succes')) {
+    toast('Paiement Wave recu ! Votre abonnement est en cours d\'activation.');
+    window.location.hash = '#/abonnement';
+  } else if (window.location.hash.includes('paiement=echec')) {
+    toast('Le paiement Wave a echoue ou a ete annule.', true);
+    window.location.hash = '#/abonnement';
+  }
 }
