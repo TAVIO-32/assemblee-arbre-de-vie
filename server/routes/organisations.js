@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
   if (slugExiste) slug = slug + '-' + Date.now().toString(36);
 
   const dateFin = new Date();
-  dateFin.setDate(dateFin.getDate() + 14);
+  dateFin.setDate(dateFin.getDate() + 3);
 
   let orgId;
   try {
@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
   res.status(201).json({
     user,
     organisation: { id: orgId, nom: nom_eglise, slug, plan: 'essai', date_fin_essai: dateFin.toISOString().split('T')[0] },
-    message: 'Eglise creee avec succes ! Vous avez 14 jours d\'essai gratuit.',
+    message: 'Eglise creee avec succes ! Vous avez 3 jours d\'essai gratuit.',
   });
 });
 

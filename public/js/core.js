@@ -382,7 +382,7 @@ function gabaritInscription() {
 function gabaritCreation() {
   return `<form id="form-auth">
     <div class="encart-info" style="margin-bottom:16px">
-      Creez votre espace eglise sur ZAURA. Vous beneficiez de <strong>14 jours d'essai gratuit</strong>.
+      Creez votre espace eglise sur ZAURA. Vous beneficiez de <strong>3 jours d'essai gratuit</strong>.
     </div>
     <label>Nom de votre eglise *</label>
     <input name="nom_eglise" required placeholder="ex. Assemblee Arbre de Vie">
