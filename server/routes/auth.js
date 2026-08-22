@@ -72,6 +72,8 @@ router.post('/login', async (req, res) => {
   }
 
   if (!user || !bcrypt.compareSync(String(password), user.password_hash)) {
+    const app = req.app;
+    if (app.recordFailedLogin) app.recordFailedLogin(req);
     return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
   if (user.statut === 'en_attente') {

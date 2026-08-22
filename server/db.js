@@ -285,6 +285,7 @@ if (engine === 'pg') {
     async run(sql, ...params) { sqlite.prepare(sql).run(...params); },
     async insert(sql, ...params) { return sqlite.prepare(sql).run(...params).lastInsertRowid; },
     async colonneExiste(table, colonne) {
+      if (!/^[a-z_][a-z0-9_]*$/i.test(table) || !/^[a-z_][a-z0-9_]*$/i.test(colonne)) return false;
       return sqlite.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name).includes(colonne);
     },
     async init() {
@@ -302,6 +303,9 @@ db.concatListe = (expr, sep) =>
 db.placeholders = (n) => Array.from({ length: n }, () => '?').join(', ');
 
 db.ajouterColonne = async function ajouterColonne(table, colonne, definition) {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(table) || !/^[a-z_][a-z0-9_]*$/i.test(colonne)) {
+    throw new Error('Nom de table ou colonne invalide');
+  }
   if (await db.colonneExiste(table, colonne)) return false;
   await db.run(`ALTER TABLE ${table} ADD COLUMN ${colonne} ${definition}`);
   return true;
@@ -322,11 +326,19 @@ db.creerOrgAvecReferentiel = async function creerOrgAvecReferentiel(orgId, tribu
 
 db.creerSuperAdmin = async function creerSuperAdmin() {
   const bcrypt = require('bcryptjs');
-  const email = process.env.SUPER_ADMIN_EMAIL || 'admin@zaura.app';
-  const pass = process.env.SUPER_ADMIN_PASSWORD || 'zaura2024';
+  const crypto = require('crypto');
+  const email = process.env.SUPER_ADMIN_EMAIL;
+  const pass = process.env.SUPER_ADMIN_PASSWORD;
+  if (!email || !pass) {
+    console.log('SUPER_ADMIN_EMAIL et SUPER_ADMIN_PASSWORD non definis — aucun super admin cree.');
+    return;
+  }
+  if (pass.length < 12) {
+    console.warn('ATTENTION : SUPER_ADMIN_PASSWORD doit faire au moins 12 caracteres.');
+  }
   const existe = await db.get('SELECT id FROM super_admins WHERE email = ?', email);
   if (!existe) {
-    const hash = bcrypt.hashSync(pass, 10);
+    const hash = bcrypt.hashSync(pass, 12);
     await db.insert('INSERT INTO super_admins (email, password_hash, nom) VALUES (?, ?, ?)',
       email, hash, 'Super Admin');
     console.log(`Super admin cree : ${email}`);

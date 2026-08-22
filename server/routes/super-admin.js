@@ -14,6 +14,7 @@ router.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email et mot de passe requis.' });
   const admin = await db.get('SELECT * FROM super_admins WHERE lower(email) = lower(?)', String(email).trim());
   if (!admin || !bcrypt.compareSync(String(password), admin.password_hash)) {
+    if (req.app.recordFailedLogin) req.app.recordFailedLogin(req);
     return res.status(401).json({ error: 'Identifiants incorrects.' });
   }
   setAdminCookie(res, admin);

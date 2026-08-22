@@ -38,10 +38,25 @@ async function supprimerFichier(orgId, nom) {
 
 router.get('/:nom', async (req, res) => {
   const nom = path.basename(req.params.nom);
-  const row = await db.get('SELECT mime, donnees FROM fichiers WHERE nom = ?', nom);
+  if (!/^[a-f0-9]{24}\.\w{2,5}$/i.test(nom)) {
+    return res.status(400).json({ error: 'Nom de fichier invalide.' });
+  }
+  const jwt = require('jsonwebtoken');
+  const { COOKIE_NAME } = require('../middleware/auth');
+  const JWT_SECRET = process.env.JWT_SECRET || '';
+  let orgId = null;
+  const token = req.cookies && req.cookies[COOKIE_NAME];
+  if (token) {
+    try {
+      const payload = jwt.verify(token, JWT_SECRET);
+      orgId = payload.org_id;
+    } catch {}
+  }
+  if (!orgId) return res.status(401).json({ error: 'Connexion requise.' });
+  const row = await db.get('SELECT mime, donnees FROM fichiers WHERE nom = ? AND org_id = ?', nom, orgId);
   if (!row) return res.status(404).json({ error: 'Image introuvable.' });
   res.set('Content-Type', row.mime);
-  res.set('Cache-Control', 'public, max-age=86400');
+  res.set('Cache-Control', 'private, max-age=3600');
   res.send(Buffer.isBuffer(row.donnees) ? row.donnees : Buffer.from(row.donnees));
 });
 

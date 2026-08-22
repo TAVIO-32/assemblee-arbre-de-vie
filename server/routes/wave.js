@@ -3,12 +3,14 @@
  */
 const express = require('express');
 const https = require('https');
+const crypto = require('crypto');
 const db = require('../db');
 const { requireAuth, requireDirection } = require('../middleware/auth');
 
 const router = express.Router();
 
 const WAVE_API_KEY = process.env.WAVE_API_KEY || '';
+const WAVE_WEBHOOK_SECRET = process.env.WAVE_WEBHOOK_SECRET || '';
 const WAVE_API_URL = 'https://api.wave.com/v1/checkout/sessions';
 
 function waveRequest(body) {
@@ -96,9 +98,18 @@ router.post('/checkout', requireAuth, requireDirection, async (req, res) => {
 
 /** POST /api/wave/webhook — Callback de Wave apres paiement. */
 router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
+  const raw = typeof req.body === 'string' ? req.body : req.body.toString('utf8');
+
+  if (WAVE_WEBHOOK_SECRET) {
+    const signature = req.headers['wave-signature'] || req.headers['x-wave-signature'] || '';
+    const expected = crypto.createHmac('sha256', WAVE_WEBHOOK_SECRET).update(raw).digest('hex');
+    if (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      return res.status(403).json({ error: 'Signature invalide.' });
+    }
+  }
+
   let payload;
   try {
-    const raw = typeof req.body === 'string' ? req.body : req.body.toString('utf8');
     payload = JSON.parse(raw);
   } catch (e) {
     return res.status(400).json({ error: 'Payload invalide.' });
