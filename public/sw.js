@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zaura-v8';
+const CACHE_NAME = 'zaura-v9';
 const STATIC = [
   '/',
   '/index.html',
@@ -9,7 +9,10 @@ const STATIC = [
   '/js/vues-equipe.js',
   '/js/vues-membre.js',
   '/js/app.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/zaura-icon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
