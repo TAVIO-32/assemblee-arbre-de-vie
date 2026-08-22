@@ -1,19 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1147"/>
+      <stop offset="100%" stop-color="#0f0a2a"/>
+    </linearGradient>
+    <linearGradient id="z1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="z2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="z3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="txt" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="50%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#ec4899"/>
+      <stop offset="60%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
   </defs>
-  <!-- Icon -->
-  <rect x="5" y="5" width="70" height="70" rx="17" fill="url(#grad)"/>
-  <!-- Z letter -->
-  <path d="M22 24h36v0l-31 37h34" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Cross accent -->
-  <circle cx="66" cy="16" r="6" fill="#fff" opacity="0.25"/>
-  <line x1="66" y1="12" x2="66" y2="20" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
-  <line x1="62" y1="16" x2="70" y2="16" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
-  <!-- ZAURA text -->
-  <text x="90" y="56" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="48" font-weight="900" letter-spacing="2" fill="url(#grad)">ZAURA</text>
+  <rect x="5" y="5" width="70" height="70" rx="16" fill="url(#bg)"/>
+  <ellipse cx="40" cy="42" rx="22" ry="19" fill="url(#glow)"/>
+  <polygon points="18,22 59,22 59,28 18,28" fill="url(#z1)"/>
+  <polygon points="50,28 59,22 38,52 31,58" fill="url(#z2)"/>
+  <polygon points="21,52 62,52 62,58 21,58" fill="url(#z3)"/>
+  <polygon points="18,22 59,22 59,23.5 18,23.5" fill="rgba(255,255,255,0.15)"/>
+  <text x="90" y="56" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="48" font-weight="900" letter-spacing="2" fill="url(#txt)">ZAURA</text>
 </svg>

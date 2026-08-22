@@ -1,23 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="90" fill="#0f766e"/>
-
-  <g transform="translate(56, 50) scale(1.15)">
-    <!-- V cursive -->
-    <path d="M 40 120 Q 50 80 80 60 Q 110 42 130 70 Q 150 100 120 200 Q 100 260 90 300 Q 85 320 95 310 Q 130 260 170 200 Q 200 155 220 140"
-          fill="none" stroke="#c5a832" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-
-    <!-- Flame/drop -->
-    <path d="M 148 58 Q 154 28 162 48 Q 172 78 180 58 Q 185 40 175 25 Q 165 12 155 28 Q 146 42 148 58 Z"
-          fill="none" stroke="#c5a832" stroke-width="6" stroke-linecap="round"/>
-    <path d="M 156 62 Q 160 46 166 56 Q 170 64 166 68 Q 160 72 156 62 Z"
-          fill="none" stroke="#c5a832" stroke-width="3.5"/>
-
-    <!-- H cursive -->
-    <path d="M 200 70 Q 210 50 225 100 Q 240 150 230 220 Q 225 260 220 300 Q 218 320 225 310
-             M 210 200 Q 250 170 290 160 Q 310 155 320 170 Q 335 195 310 280 Q 300 310 310 320 Q 325 330 350 300"
-          fill="none" stroke="#c5a832" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <!-- Red accent line -->
-  <rect x="180" y="460" width="150" height="14" rx="4" fill="#a81c1c"/>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1147"/>
+      <stop offset="100%" stop-color="#0f0a2a"/>
+    </linearGradient>
+    <linearGradient id="z1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="z2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="z3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <ellipse cx="256" cy="270" rx="160" ry="140" fill="url(#glow)"/>
+  <polygon points="112,132 380,132 380,180 112,180" fill="url(#z1)"/>
+  <polygon points="310,180 380,132 210,332 140,380" fill="url(#z2)"/>
+  <polygon points="132,332 400,332 400,380 132,380" fill="url(#z3)"/>
+  <polygon points="112,132 380,132 380,142 112,142" fill="rgba(255,255,255,0.15)"/>
+  <polygon points="132,332 210,332 140,380 132,380" fill="rgba(0,0,0,0.15)"/>
 </svg>
